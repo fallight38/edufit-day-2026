@@ -34,14 +34,16 @@
     font-size:16px;font-family:inherit;background:#FAFAFC;color:var(--text);outline:none;
   }
   /* iOS Safari는 날짜 입력칸에 자체 기본 너비를 적용해 width:100%를 무시한다.
-     기본 스타일을 끄고 높이를 직접 지정해야 카드 밖으로 넘치지 않는다. */
+     기본 스타일을 끄고 너비/높이를 직접 지정해야 카드 밖으로 넘치지 않는다. */
   input[type=date]{
     -webkit-appearance:none;appearance:none;
-    display:block;height:48px;line-height:22px;
-    text-align:left;
+    display:block;width:100%;max-width:100%;min-width:0;
+    height:48px;line-height:22px;text-align:left;
   }
-  input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;}
+  input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;width:100%;}
   input[type=date]::-webkit-calendar-picker-indicator{margin-left:auto;}
+  /* 어떤 이유로든 내용이 넘칠 경우 카드 밖으로 삐져나가지 않도록 차단 */
+  .field{max-width:100%;overflow:hidden;}
   input:focus, textarea:focus{border-color:var(--blue);background:#fff;}
   textarea{resize:vertical;min-height:64px;}
 
@@ -183,6 +185,7 @@
               <span>분</span>
             </div>
           </div>
+          <div class="hint" id="lunchNote">점심시간(12:00~13:00)은 결강시간에서 제외됩니다.</div>
         </div>
       </div>
 
@@ -369,13 +372,33 @@ const endWheelEl = buildWheel(document.getElementById('endWheel'));
 startWheelEl._scrollTo(9,0);
 endWheelEl._scrollTo(18,0);
 
+/* 점심시간(12:00~13:00)은 결강시간에서 제외한다. */
+const LUNCH_START = 12*60, LUNCH_END = 13*60;
+
+function overlapMinutes(aStart, aEnd, bStart, bEnd){
+  return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
+}
+
 function recalcDuration(){
   const sh = startWheelEl._state.hour, sm = startWheelEl._state.min;
   const eh = endWheelEl._state.hour, em = endWheelEl._state.min;
-  let diff = (eh*60+em) - (sh*60+sm);
+  const start = sh*60 + sm, end = eh*60 + em;
+
+  let diff = end - start;
   if(diff < 0) diff = 0;
+
+  const lunch = overlapMinutes(start, end, LUNCH_START, LUNCH_END);
+  diff = Math.max(0, diff - lunch);
+
   document.getElementById('f_durH').value = Math.floor(diff/60);
   document.getElementById('f_durM').value = diff%60;
+
+  const note = document.getElementById('lunchNote');
+  if(note){
+    note.textContent = lunch > 0
+      ? `점심시간 ${lunch}분이 제외된 시간입니다.`
+      : '점심시간(12:00~13:00)은 결강시간에서 제외됩니다.';
+  }
 }
 startWheelEl._onChange = recalcDuration;
 endWheelEl._onChange = recalcDuration;
