@@ -70,6 +70,13 @@
   .durrow input[type=number]{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 10px;font-size:16px;text-align:center;background:#FAFAFC;}
   .durrow span{font-size:13px;color:var(--sub);white-space:nowrap;}
 
+  .absent-box{
+    display:flex;align-items:center;justify-content:space-between;
+    border:1px solid var(--border);border-radius:12px;padding:14px;background:#FAFAFC;
+  }
+  .absent-box b{font-size:17px;font-variant-numeric:tabular-nums;}
+  .absent-box span{font-size:15px;color:var(--blue);font-weight:600;}
+
   .sig-wrap{border:1px solid var(--border);border-radius:14px;background:#FAFAFC;position:relative;}
   .sig-wrap.missing{border-color:var(--red);background:#FFF7F7;}
   /* 손가락으로 서명하거나 휠을 돌릴 때 텍스트가 선택되거나
@@ -208,6 +215,15 @@
           </div>
           <div class="hint" id="lunchNote">점심시간(12:00~13:00)은 산출 시간에서 제외됩니다.</div>
         </div>
+
+        <div class="field" id="absentInfo" style="display:none;">
+          <label>결강시간</label>
+          <div class="absent-box">
+            <b>09:00 ~ 16:50</b>
+            <span>7시간 0분</span>
+          </div>
+          <div class="hint">결석은 하루 전체 결강으로 기록되며, 시간을 따로 입력하지 않습니다.</div>
+        </div>
       </div>
 
       <div class="card">
@@ -302,10 +318,15 @@ typeSeg.addEventListener('click', (e)=>{
   selectedType = btn.dataset.v;
   toggleTimeFields();
 });
+/* 결석은 하루 전체 결강으로 보아 아래 고정값으로 기록한다 (교육시수 기준). */
+const ABSENT = { start:'09:00', end:'16:50', hours:7, minutes:0 };
+
 function toggleTimeFields(){
   const show = selectedType !== '결석';
   document.getElementById('timeFieldWrap').style.display = show ? '' : 'none';
   document.getElementById('durFieldWrap').style.display = show ? '' : 'none';
+  const box = document.getElementById('absentInfo');
+  if(box) box.style.display = show ? 'none' : '';
 }
 toggleTimeFields();
 
@@ -578,7 +599,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
     return;
   }
 
-  const showTime = selectedType !== '결석';
+  const isAbsent = selectedType === '결석';
   const payload = {
     제출ID: genSubmissionId(),
     성명: name,
@@ -586,10 +607,10 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
     교육훈련과정: document.getElementById('f_course').value.trim(),
     구분: selectedType,
     해당일자: date,
-    시작시각: showTime ? `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}` : '',
-    종료시각: showTime ? `${String(endWheelEl._state.hour).padStart(2,'0')}:${String(endWheelEl._state.min).padStart(2,'0')}` : '',
-    '결강시간(시간)': showTime ? Number(document.getElementById('f_durH').value||0) : '',
-    '결강시간(분)': showTime ? Number(document.getElementById('f_durM').value||0) : '',
+    시작시각: isAbsent ? ABSENT.start : `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}`,
+    종료시각: isAbsent ? ABSENT.end : `${String(endWheelEl._state.hour).padStart(2,'0')}:${String(endWheelEl._state.min).padStart(2,'0')}`,
+    '결강시간(시간)': isAbsent ? ABSENT.hours : Number(document.getElementById('f_durH').value||0),
+    '결강시간(분)': isAbsent ? ABSENT.minutes : Number(document.getElementById('f_durM').value||0),
     사유: reason,
     비고: document.getElementById('f_note').value.trim(),
     서명: canvas.toDataURL('image/png')
