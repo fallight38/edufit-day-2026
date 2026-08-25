@@ -172,8 +172,8 @@ function renderEntries(){
       <td>${esc(e.성명)}</td>
       <td>${esc(e.생년월일||'')}</td>
       <td><span class="tag ${esc(e.구분)}">${esc(e.구분)}</span></td>
-      <td>${esc(e.해당일자||'')}</td>
-      <td>${esc(e.시작시각||'')}${e.시작시각?' ~ ':''}${esc(e.종료시각||'')}</td>
+      <td>${esc(fmtDate(e.해당일자))}</td>
+      <td>${esc(fmtRange(e.시작시각, e.종료시각))}</td>
       <td>${e['결강시간(시간)']!=null && e['결강시간(시간)']!=='' ? (e['결강시간(시간)']+'시간 '+(e['결강시간(분)']||0)+'분') : ''}</td>
       <td>${esc(e.사유||'')}</td>
       <td>${esc(e.상태||'등록')}</td>
@@ -182,6 +182,38 @@ function renderEntries(){
   `).join('');
 }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* 시트에서 넘어온 값이 ISO 날짜 문자열 형태여도 화면에는 HH:mm / yyyy-MM-dd 로 표시한다.
+   ISO 값은 UTC 기준이므로 문자열을 잘라 쓰지 않고 Date로 변환해 현지 시각으로 표시한다. */
+function isIso(s){ return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(s)); }
+function fmtTime(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    }
+  }
+  return s;
+}
+function fmtDate(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+  }
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : s;
+}
+function fmtRange(start, end){
+  const s = fmtTime(start), e = fmtTime(end);
+  if(!s && !e) return '';
+  return s + (e ? ' ~ ' + e : '');
+}
 
 document.getElementById('addEntryBtn').addEventListener('click', ()=>{
   const name = document.getElementById('m_name').value.trim();
@@ -260,6 +292,7 @@ function renderPendingItem(item){
   const durText = (item['결강시간(시간)']!=null && item['결강시간(시간)']!=='') ?
     `${item['결강시간(시간)']}시간 ${item['결강시간(분)']||0}분` : '';
   const dataAttr = esc(JSON.stringify(item));
+  const timeText = fmtRange(item.시작시각, item.종료시각);
   return `
     <div class="pend-item" data-id="${esc(item['제출ID'])}" data-full="${dataAttr}">
       <div class="head">
@@ -268,7 +301,7 @@ function renderPendingItem(item){
       </div>
       <div class="meta">
         생년월일: ${esc(item.생년월일||'-')} · 연수과정: ${esc(item.연수과정||'-')}<br>
-        일자: ${esc(item.해당일자||'-')} ${item.시작시각?('· '+esc(item.시작시각)+' ~ '+esc(item.종료시각)):''} ${durText?('· 결강 '+durText):''}<br>
+        일자: ${esc(fmtDate(item.해당일자)) || '-'} ${timeText?('· '+esc(timeText)):''} ${durText?('· 결강 '+durText):''}<br>
         사유: ${esc(item.사유||'-')} ${item.비고?('· 비고: '+esc(item.비고)):''}
       </div>
       ${item.서명 ? `<img class="sig" src="${item.서명}" alt="서명">` : ''}
@@ -335,9 +368,9 @@ function extractItemForEntry(itemEl, submissionId, operator){
     성명: original.성명 || '',
     생년월일: original.생년월일 || '',
     구분: original.구분 || '',
-    해당일자: original.해당일자 || '',
-    시작시각: original.시작시각 || '',
-    종료시각: original.종료시각 || '',
+    해당일자: fmtDate(original.해당일자),
+    시작시각: fmtTime(original.시작시각),
+    종료시각: fmtTime(original.종료시각),
     '결강시간(시간)': original['결강시간(시간)'],
     '결강시간(분)': original['결강시간(분)'],
     사유: original.사유 || '',
