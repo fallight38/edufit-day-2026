@@ -72,9 +72,21 @@
   .btn-submit:disabled{background:#C7C7CC;}
   .errtext{color:var(--red);font-size:12px;margin-top:8px;text-align:center;white-space:pre-wrap;}
 
+  .linkbtn{background:none;border:none;color:var(--blue);font-size:13px;font-weight:600;font-family:inherit;margin-top:8px;padding:4px;}
+
   /* 완료 화면 */
   #doneScreen{display:none;min-height:100vh;padding:40px 20px;text-align:center;}
   #doneScreen[hidden]{display:none !important;}
+  #lookupScreen[hidden]{display:none !important;}
+
+  .status-item{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:10px;}
+  .status-item .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .status-item .top b{font-size:15px;}
+  .status-item .detail{font-size:13px;color:var(--sub);line-height:1.6;}
+  .st{display:inline-block;padding:4px 11px;border-radius:9px;font-size:12.5px;font-weight:700;}
+  .st.대기{background:#FFF3CD;color:#8A6D00;}
+  .st.승인{background:#DCF5E3;color:#1B7A38;}
+  .st.반려{background:#FFE1E1;color:#C81E1E;}
   .check{width:64px;height:64px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 18px;}
   #doneScreen h2{font-size:19px;margin:0 0 8px;}
   #doneScreen p{color:var(--sub);font-size:14px;line-height:1.6;margin:0 0 28px;}
@@ -92,6 +104,7 @@
   <div class="topbar">
     <h1>에듀핏 데이</h1>
     <p>지각 · 조퇴 · 외출 · 결석 신고</p>
+    <button type="button" class="linkbtn" id="toLookupBtn">이미 제출했다면 · 승인 여부 확인</button>
   </div>
 
   <div class="wrap">
@@ -103,16 +116,14 @@
           <input type="text" id="f_name" required placeholder="홍길동">
         </div>
         <div class="field">
-          <label>아이디 (배움누리터)<span class="req">*</span></label>
-          <input type="text" id="f_uid" required placeholder="배움누리터 아이디">
+          <label>생년월일<span class="req">*</span></label>
+          <input type="text" id="f_birth" required inputmode="numeric" maxlength="6"
+                 placeholder="예: 930507" autocomplete="off">
+          <div class="hint">숫자 6자리로 입력해주세요. 승인 여부를 확인할 때 본인 확인용으로 쓰입니다.</div>
         </div>
         <div class="field">
           <label>연수과정</label>
           <input type="text" id="f_course" value="2026년 신규공무원 공직적응과정">
-        </div>
-        <div class="field">
-          <label>소속</label>
-          <input type="text" id="f_org" placeholder="소속 부서 / 기관">
         </div>
       </div>
 
@@ -199,9 +210,12 @@
 
 <div id="doneScreen" hidden>
   <div class="check">✓</div>
-  <h2>제출이 완료되었습니다</h2>
-  <p>담당자 검토 후 근태에 반영됩니다.</p>
-  <button class="btn-outline" id="backBtn">새로 제출하기</button>
+  <h2>제출 완료되었습니다</h2>
+  <p>담당자 승인 후에 확정됩니다.</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button class="btn-outline" id="backBtn">새로 제출하기</button>
+    <button class="btn-outline" id="toLookupBtn2">승인 여부 확인</button>
+  </div>
 
   <div class="history">
     <h3>이 기기에서 보낸 제출 내역</h3>
@@ -209,9 +223,36 @@
   </div>
 </div>
 
+<div id="lookupScreen" hidden>
+  <div class="topbar">
+    <h1>승인 여부 확인</h1>
+    <p>제출하신 성명과 생년월일을 입력해주세요</p>
+  </div>
+  <div class="wrap">
+    <div class="card">
+      <div class="field">
+        <label>성명<span class="req">*</span></label>
+        <input type="text" id="q_name" placeholder="제출할 때 입력한 성명">
+      </div>
+      <div class="field">
+        <label>생년월일<span class="req">*</span></label>
+        <input type="text" id="q_birth" inputmode="numeric" maxlength="6" placeholder="예: 930507" autocomplete="off">
+      </div>
+      <button class="btn-submit" id="lookupBtn" style="margin-top:4px;">조회하기</button>
+      <div id="lookupError" class="errtext"></div>
+    </div>
+
+    <div id="lookupResult"></div>
+
+    <div style="text-align:center;margin-top:8px;">
+      <button class="btn-outline" id="backFromLookupBtn">제출 화면으로</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw-INcYHGgQv2-3jZPRLfijwreTAVweSzifj4tNtPfT3r3bS1iXTnjKBWK2-d7FqIib/exec";
+const GAS_URL = "REPLACE_WITH_YOUR_GAS_WEB_APP_URL";
 
 /* ===== 구분 세그먼트 ===== */
 let selectedType = "지각";
@@ -401,12 +442,16 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   errBox.textContent = '';
 
   const name = document.getElementById('f_name').value.trim();
-  const uid = document.getElementById('f_uid').value.trim();
+  const birth = document.getElementById('f_birth').value.trim();
   const date = document.getElementById('f_date').value;
   const reason = document.getElementById('f_reason').value.trim();
 
-  if(!name || !uid || !date || !reason){
+  if(!name || !birth || !date || !reason){
     errBox.textContent = '필수 항목(*)을 모두 입력해주세요.';
+    return;
+  }
+  if(!/^\d{6}$/.test(birth)){
+    errBox.textContent = '생년월일은 숫자 6자리로 입력해주세요. (예: 930507)';
     return;
   }
   if(!hasSig){
@@ -422,9 +467,8 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   const payload = {
     제출ID: genSubmissionId(),
     성명: name,
-    아이디: uid,
+    생년월일: birth,
     연수과정: document.getElementById('f_course').value.trim(),
-    소속: document.getElementById('f_org').value.trim(),
     구분: selectedType,
     해당일자: date,
     시작시각: showTime ? `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}` : '',
@@ -457,8 +501,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
     payload.제출일시 = new Date().toLocaleString('ko-KR');
     saveLocalHistory(payload);
     renderHistory();
-    document.getElementById('formScreen').style.display = 'none';
-    document.getElementById('doneScreen').hidden = false;
+    showScreen('done');
   }catch(err){
     clearTimeout(timeout);
     if(err.name === 'AbortError'){
@@ -471,13 +514,117 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   }
 });
 
+/* ===== 화면 전환 ===== */
+function showScreen(which){
+  document.getElementById('formScreen').style.display = (which==='form') ? '' : 'none';
+  document.getElementById('doneScreen').hidden = (which!=='done');
+  document.getElementById('lookupScreen').hidden = (which!=='lookup');
+  window.scrollTo(0,0);
+}
+
 document.getElementById('backBtn').addEventListener('click', ()=>{
-  document.getElementById('doneScreen').hidden = true;
-  document.getElementById('formScreen').style.display = '';
+  showScreen('form');
   document.getElementById('submitForm').reset();
   ctx.clearRect(0,0,canvas.width,canvas.height);
   hasSig=false; sigPlaceholder.style.display='block';
 });
+
+document.getElementById('toLookupBtn').addEventListener('click', ()=>{
+  prefillLookup(); showScreen('lookup');
+});
+document.getElementById('toLookupBtn2').addEventListener('click', ()=>{
+  prefillLookup(); showScreen('lookup');
+});
+document.getElementById('backFromLookupBtn').addEventListener('click', ()=>showScreen('form'));
+
+function prefillLookup(){
+  // 직전 제출/입력값이 있으면 자동으로 채워서 조회 편의 제공
+  const name = document.getElementById('f_name').value.trim();
+  const birth = document.getElementById('f_birth').value.trim();
+  const last = loadLocalHistory()[0];
+  if(!document.getElementById('q_name').value){
+    document.getElementById('q_name').value = name || (last ? last.성명 : '');
+  }
+  if(!document.getElementById('q_birth').value){
+    document.getElementById('q_birth').value = birth || (last ? (last.생년월일||'') : '');
+  }
+}
+
+/* ===== 승인 여부 조회 ===== */
+document.getElementById('lookupBtn').addEventListener('click', async ()=>{
+  const errBox = document.getElementById('lookupError');
+  const resultBox = document.getElementById('lookupResult');
+  errBox.textContent = ''; resultBox.innerHTML = '';
+
+  const name = document.getElementById('q_name').value.trim();
+  const birth = document.getElementById('q_birth').value.trim();
+  if(!name || !birth){ errBox.textContent = '성명과 생년월일을 모두 입력해주세요.'; return; }
+  if(!/^\d{6}$/.test(birth)){
+    errBox.textContent = '생년월일은 숫자 6자리로 입력해주세요. (예: 930507)';
+    return;
+  }
+  if(GAS_URL.indexOf('REPLACE_WITH') === 0){
+    errBox.textContent = '아직 서버 주소(GAS_URL)가 설정되지 않았습니다. 담당자에게 문의해주세요.';
+    return;
+  }
+
+  const btn = document.getElementById('lookupBtn');
+  btn.disabled = true; btn.textContent = '조회 중...';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 8000);
+  try{
+    const url = `${GAS_URL}?action=status&name=${encodeURIComponent(name)}&birth=${encodeURIComponent(birth)}`;
+    const res = await fetch(url, {signal: controller.signal});
+    clearTimeout(timeout);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || '조회에 실패했습니다.');
+
+    const list = data.data || [];
+    if(list.length === 0){
+      resultBox.innerHTML = '<div class="status-item"><div class="detail">해당 성명·생년월일로 접수된 제출 내역이 없습니다. 입력값을 다시 확인해주세요.</div></div>';
+      return;
+    }
+    resultBox.innerHTML = list.slice().reverse().map(renderStatusItem).join('');
+  }catch(err){
+    clearTimeout(timeout);
+    errBox.textContent = (err.name === 'AbortError')
+      ? '서버 응답이 8초 이상 지연되어 요청을 중단했습니다. 네트워크 상태를 확인 후 다시 시도해주세요.'
+      : '조회 중 오류가 발생했습니다: ' + err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = '조회하기';
+  }
+});
+
+function renderStatusItem(it){
+  const status = it.상태 || '대기';
+  const dur = (it['결강시간(시간)'] !== '' && it['결강시간(시간)'] != null)
+    ? `${it['결강시간(시간)']}시간 ${it['결강시간(분)']||0}분` : '';
+  const timeText = it.시작시각 ? `${it.시작시각} ~ ${it.종료시각}` : '';
+  let note = '';
+  if(status === '대기') note = '담당자 승인 대기 중입니다.';
+  else if(status === '승인') note = '담당자 승인이 완료되어 근태에 반영되었습니다.';
+  else if(status === '반려') note = '반려되었습니다. 자세한 사항은 담당자에게 문의해주세요.';
+  return `
+    <div class="status-item">
+      <div class="top">
+        <b>${escHtml(it.구분||'')} · ${escHtml(String(it.해당일자||''))}</b>
+        <span class="st ${escHtml(status)}">${escHtml(status)}</span>
+      </div>
+      <div class="detail">
+        ${timeText ? escHtml(timeText)+'<br>' : ''}
+        ${dur ? '결강시간 '+escHtml(dur)+'<br>' : ''}
+        사유: ${escHtml(it.사유||'-')}<br>
+        ${it.제출일시 ? '제출 '+escHtml(String(it.제출일시)) : ''}
+        ${it.처리일시 ? ' · 처리 '+escHtml(String(it.처리일시)) : ''}
+        <br><span style="color:var(--text);">${escHtml(note)}</span>
+      </div>
+    </div>`;
+}
+
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 </script>
 </body>
 </html>
