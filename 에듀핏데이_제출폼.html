@@ -72,6 +72,13 @@
 
   .sig-wrap{border:1px solid var(--border);border-radius:14px;background:#FAFAFC;position:relative;}
   .sig-wrap.missing{border-color:var(--red);background:#FFF7F7;}
+  /* 손가락으로 서명하거나 휠을 돌릴 때 텍스트가 선택되거나
+     길게 누르기 메뉴가 뜨지 않도록 차단한다 (iOS Safari 기본 동작). */
+  .sig-wrap, .sig-wrap *, .wheel-outer, .wheel-outer *, .segment, .segment *{
+    -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
+  }
+  canvas#sigPad{touch-action:none;}
   canvas#sigPad{width:100%;height:160px;display:block;touch-action:none;border-radius:14px;}
   .sig-placeholder{position:absolute;top:50%;left:0;right:0;text-align:center;transform:translateY(-50%);color:#C7C7CC;font-size:14px;pointer-events:none;}
   .sig-actions{display:flex;justify-content:flex-end;margin-top:8px;}
@@ -443,6 +450,12 @@ window.addEventListener('resize', ()=>{
   resizeTimer = setTimeout(resizeCanvas, 150);
 });
 resizeCanvas();
+
+// iOS Safari에서 손가락으로 서명할 때 텍스트 선택이나 길게 누르기 메뉴가 뜨는 것을 막는다.
+// 주의: touchstart의 기본 동작을 막으면 포인터 이벤트가 발생하지 않아 서명 자체가 그려지지 않는다.
+// 따라서 선택 차단은 CSS(user-select/touch-callout)와 아래 두 이벤트로만 처리한다.
+canvas.addEventListener('contextmenu', (e)=>e.preventDefault());
+canvas.addEventListener('selectstart', (e)=>e.preventDefault());
 
 function pos(e){
   const rect = canvas.getBoundingClientRect();
