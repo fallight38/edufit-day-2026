@@ -493,6 +493,36 @@ resizeCanvas();
 canvas.addEventListener('contextmenu', (e)=>e.preventDefault());
 canvas.addEventListener('selectstart', (e)=>e.preventDefault());
 
+/* 구글 시트는 셀 하나에 50,000자까지만 저장한다.
+   고해상도 기기(아이폰 등)에서는 서명 원본이 이 한도를 넘어 잘리므로,
+   전송 전에 크기를 줄여 충분히 여유 있는 범위로 맞춘다.
+   앱스 스크립트에는 이미지 크기 조절 기능이 없어 이 작업은 반드시 브라우저에서 해야 한다. */
+const SIG_MAX_CHARS = 30000;
+
+function exportSignature(){
+  const ratio = window.devicePixelRatio || 1;
+  const cssW = canvas.width / ratio;
+  const cssH = canvas.height / ratio;
+
+  // 기기 배율과 무관하게 일정한 크기로 다시 그린다.
+  // 원본보다 크게 늘리면 용량만 커지므로 원본 픽셀 폭을 넘지 않게 한다.
+  let targetW = Math.min(480, canvas.width);
+  let lastUrl = '';
+  for(let attempt = 0; attempt < 8; attempt++){
+    const targetH = Math.max(1, Math.round(targetW * (cssH / cssW)));
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, targetW);
+    off.height = targetH;
+    const octx = off.getContext('2d');
+    octx.drawImage(canvas, 0, 0, off.width, off.height);
+    lastUrl = off.toDataURL('image/png');
+    if(lastUrl.length <= SIG_MAX_CHARS) return lastUrl;
+    targetW = Math.round(targetW * 0.75);   // 여전히 크면 더 줄여서 재시도
+  }
+  // 8회까지 줄여도 한도를 넘는 경우는 사실상 없지만, 원본이 아닌 가장 작게 줄인 결과를 보낸다
+  return lastUrl;
+}
+
 function pos(e){
   const rect = canvas.getBoundingClientRect();
   return {x: e.clientX-rect.left, y: e.clientY-rect.top};
@@ -613,7 +643,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
     '결강시간(분)': isAbsent ? ABSENT.minutes : Number(document.getElementById('f_durM').value||0),
     사유: reason,
     비고: document.getElementById('f_note').value.trim(),
-    서명: canvas.toDataURL('image/png')
+    서명: exportSignature()
   };
 
   const btn = document.getElementById('submitBtn');
