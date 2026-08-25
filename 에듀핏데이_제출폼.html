@@ -185,7 +185,7 @@
               <span>분</span>
             </div>
           </div>
-          <div class="hint" id="lunchNote">점심시간(12:00~13:00)은 결강시간에서 제외됩니다.</div>
+          <div class="hint" id="lunchNote">점심시간(12:00~13:00)은 산출 시간에서 제외됩니다.</div>
         </div>
       </div>
 
@@ -267,7 +267,7 @@
 
 <script>
 /* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw-INcYHGgQv2-3jZPRLfijwreTAVweSzifj4tNtPfT3r3bS1iXTnjKBWK2-d7FqIib/exec";
+const GAS_URL = "REPLACE_WITH_YOUR_GAS_WEB_APP_URL";
 
 /* ===== 구분 세그먼트 ===== */
 let selectedType = "지각";
@@ -392,13 +392,6 @@ function recalcDuration(){
 
   document.getElementById('f_durH').value = Math.floor(diff/60);
   document.getElementById('f_durM').value = diff%60;
-
-  const note = document.getElementById('lunchNote');
-  if(note){
-    note.textContent = lunch > 0
-      ? `점심시간 ${lunch}분이 제외된 시간입니다.`
-      : '점심시간(12:00~13:00)은 결강시간에서 제외됩니다.';
-  }
 }
 startWheelEl._onChange = recalcDuration;
 endWheelEl._onChange = recalcDuration;
