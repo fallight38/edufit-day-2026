@@ -102,7 +102,9 @@
   </div>
 
   <div class="card">
-    <h2>근태 목록 (<span id="entryCount">0</span>건)</h2>
+    <h2>근태 목록 (<span id="entryCount">0</span>건)
+      <button class="btn-outline" id="clearEntriesBtn" style="float:right;font-size:12px;padding:5px 10px;">목록 비우기</button>
+    </h2>
     <div class="tablewrap">
       <table>
         <thead>
@@ -174,7 +176,7 @@ function renderEntries(){
       <td><span class="tag ${esc(e.구분)}">${esc(e.구분)}</span></td>
       <td>${esc(fmtDate(e.해당일자))}</td>
       <td>${esc(fmtRange(e.시작시각, e.종료시각))}</td>
-      <td>${e['결강시간(시간)']!=null && e['결강시간(시간)']!=='' ? (e['결강시간(시간)']+'시간 '+(e['결강시간(분)']||0)+'분') : ''}</td>
+      <td>${esc(fmtDur(e['결강시간(시간)'], e['결강시간(분)']))}</td>
       <td>${esc(e.사유||'')}</td>
       <td>${esc(e.상태||'등록')}</td>
       <td>${esc(e.처리자||'')}</td>
@@ -209,10 +211,31 @@ function fmtDate(v){
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[1]}-${m[2]}-${m[3]}` : s;
 }
+function fmtDateTime(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      const p = n=>String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+  }
+  return s;
+}
+
 function fmtRange(start, end){
   const s = fmtTime(start), e = fmtTime(end);
   if(!s && !e) return '';
   return s + (e ? ' ~ ' + e : '');
+}
+/* 결강시간은 숫자여야 한다. 숫자가 아닌 값(날짜로 변환된 예전 데이터 등)은 표시하지 않는다. */
+function fmtDur(h, m){
+  if(h === '' || h == null) return '';   // 값 없음과 0시간은 구분한다
+  const hh = Number(h), mm = Number(m);
+  if(!Number.isFinite(hh)) return '';
+  const minutes = Number.isFinite(mm) ? mm : 0;
+  return `${hh}시간 ${minutes}분`;
 }
 
 document.getElementById('addEntryBtn').addEventListener('click', ()=>{
@@ -289,15 +312,14 @@ async function openPendingModal(){
 }
 
 function renderPendingItem(item){
-  const durText = (item['결강시간(시간)']!=null && item['결강시간(시간)']!=='') ?
-    `${item['결강시간(시간)']}시간 ${item['결강시간(분)']||0}분` : '';
+  const durText = fmtDur(item['결강시간(시간)'], item['결강시간(분)']);
   const dataAttr = esc(JSON.stringify(item));
   const timeText = fmtRange(item.시작시각, item.종료시각);
   return `
     <div class="pend-item" data-id="${esc(item['제출ID'])}" data-full="${dataAttr}">
       <div class="head">
         <b>${esc(item.성명)} · <span class="tag ${esc(item.구분)}">${esc(item.구분)}</span></b>
-        <span style="font-size:12px;color:var(--sub);">${esc(item.제출일시||'')}</span>
+        <span style="font-size:12px;color:var(--sub);">${esc(fmtDateTime(item.제출일시))}</span>
       </div>
       <div class="meta">
         생년월일: ${esc(item.생년월일||'-')} · 연수과정: ${esc(item.연수과정||'-')}<br>
@@ -371,13 +393,22 @@ function extractItemForEntry(itemEl, submissionId, operator){
     해당일자: fmtDate(original.해당일자),
     시작시각: fmtTime(original.시작시각),
     종료시각: fmtTime(original.종료시각),
-    '결강시간(시간)': original['결강시간(시간)'],
-    '결강시간(분)': original['결강시간(분)'],
+    '결강시간(시간)': Number.isFinite(Number(original['결강시간(시간)'])) ? Number(original['결강시간(시간)']) : '',
+    '결강시간(분)': Number.isFinite(Number(original['결강시간(분)'])) ? Number(original['결강시간(분)']) : '',
     사유: original.사유 || '',
     상태: '승인',
     처리자: operator
   };
 }
+
+document.getElementById('clearEntriesBtn').addEventListener('click', ()=>{
+  const n = loadEntries().length;
+  if(n === 0){ alert('비울 항목이 없습니다.'); return; }
+  if(confirm(`이 기기의 근태 목록 ${n}건을 모두 지웁니다.\n구글 시트의 원본 데이터는 지워지지 않습니다.\n계속할까요?`)){
+    saveEntries([]);
+    renderEntries();
+  }
+});
 
 document.getElementById('openPendingBtn').addEventListener('click', openPendingModal);
 document.getElementById('closeModalBtn').addEventListener('click', ()=>{ document.getElementById('pendingModal').hidden = true; });

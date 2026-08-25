@@ -511,8 +511,8 @@ function renderHistory(){
   if(list.length===0){ wrap.innerHTML = '<div class="hist-item">아직 제출 내역이 없습니다.</div>'; return; }
   wrap.innerHTML = list.map(it=>`
     <div class="hist-item">
-      <b>${it.구분}</b> · ${it.해당일자}
-      <div class="meta">${it.시작시각||''} ${it.시작시각?'~':''} ${it.종료시각||''} ${it.제출일시?('· 제출 '+it.제출일시):''}</div>
+      <b>${escHtml(it.구분||'')}</b> · ${escHtml(fmtDate(it.해당일자))}
+      <div class="meta">${escHtml(fmtTime(it.시작시각))} ${it.시작시각?'~':''} ${escHtml(fmtTime(it.종료시각))} ${it.제출일시?('· 제출 '+escHtml(fmtDateTime(it.제출일시))):''}</div>
     </div>
   `).join('');
 }
@@ -707,10 +707,30 @@ function fmtDate(v){
   return m ? `${m[1]}-${m[2]}-${m[3]}` : s;
 }
 
+function fmtDateTime(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      const p = n=>String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+  }
+  return s;
+}
+
+function fmtDur(h, m){
+  if(h === '' || h == null) return '';   // 값 없음과 0시간은 구분한다
+  const hh = Number(h), mm = Number(m);
+  if(!Number.isFinite(hh)) return '';
+  const minutes = Number.isFinite(mm) ? mm : 0;
+  return `${hh}시간 ${minutes}분`;
+}
+
 function renderStatusItem(it){
   const status = it.상태 || '대기';
-  const dur = (it['결강시간(시간)'] !== '' && it['결강시간(시간)'] != null)
-    ? `${it['결강시간(시간)']}시간 ${it['결강시간(분)']||0}분` : '';
+  const dur = fmtDur(it['결강시간(시간)'], it['결강시간(분)']);
   const st = fmtTime(it.시작시각), en = fmtTime(it.종료시각);
   const timeText = st ? `${st} ~ ${en}` : '';
   let note = '';
@@ -727,8 +747,8 @@ function renderStatusItem(it){
         ${timeText ? escHtml(timeText)+'<br>' : ''}
         ${dur ? '결강시간 '+escHtml(dur)+'<br>' : ''}
         사유: ${escHtml(it.사유||'-')}<br>
-        ${it.제출일시 ? '제출 '+escHtml(String(it.제출일시)) : ''}
-        ${it.처리일시 ? ' · 처리 '+escHtml(String(it.처리일시)) : ''}
+        ${it.제출일시 ? '제출 '+escHtml(fmtDateTime(it.제출일시)) : ''}
+        ${it.처리일시 ? ' · 처리 '+escHtml(fmtDateTime(it.처리일시)) : ''}
         <br><span style="color:var(--text);">${escHtml(note)}</span>
       </div>
     </div>`;
