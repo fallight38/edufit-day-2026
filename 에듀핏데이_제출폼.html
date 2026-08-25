@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>에듀핏 데이 - 제출</title>
+<style>
+  :root{
+    --blue:#007AFF;
+    --blue-dark:#0062CC;
+    --bg:#F2F2F7;
+    --card:#FFFFFF;
+    --text:#1C1C1E;
+    --sub:#8A8A8E;
+    --border:#E5E5EA;
+    --red:#FF3B30;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);}
+  body{padding-bottom:96px;}
+  .topbar{position:sticky;top:0;z-index:10;background:rgba(242,242,247,.92);backdrop-filter:blur(10px);padding:16px 20px 10px;text-align:center;}
+  .topbar h1{font-size:20px;margin:0 0 2px;font-weight:700;}
+  .topbar p{font-size:13px;color:var(--sub);margin:0;}
+  .wrap{max-width:520px;margin:0 auto;padding:12px 16px;}
+  .card{background:var(--card);border-radius:22px;padding:18px 18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .card h2{font-size:14px;font-weight:700;color:var(--sub);margin:0 0 12px;letter-spacing:.02em;}
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+  label .req{color:var(--red);margin-left:2px;}
+  input[type=text], input[type=date], textarea{
+    width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;
+    font-size:16px;font-family:inherit;background:#FAFAFC;color:var(--text);outline:none;
+  }
+  input:focus, textarea:focus{border-color:var(--blue);background:#fff;}
+  textarea{resize:vertical;min-height:64px;}
+
+  .segment{display:flex;background:#E9E9EF;border-radius:12px;padding:3px;gap:3px;}
+  .segment button{
+    flex:1;border:none;background:transparent;padding:10px 4px;border-radius:9px;
+    font-size:14px;font-weight:600;color:var(--text);font-family:inherit;
+  }
+  .segment button.active{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+
+  .timepair{display:flex;gap:10px;align-items:center;}
+  .wheelbox{flex:1;}
+  .wheelbox .wl{font-size:12px;color:var(--sub);margin-bottom:6px;text-align:center;}
+  .wheel-outer{position:relative;height:132px;overflow:hidden;border-radius:14px;background:#FAFAFC;border:1px solid var(--border);}
+  .wheel-outer .band{position:absolute;left:0;right:0;top:44px;height:44px;background:rgba(0,122,255,.08);border-top:1px solid rgba(0,122,255,.25);border-bottom:1px solid rgba(0,122,255,.25);pointer-events:none;}
+  .wheel-scroll{height:132px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:44px 0;}
+  .wheel-scroll::-webkit-scrollbar{display:none;}
+  .wheel-item{height:44px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:20px;color:#C7C7CC;font-variant-numeric:tabular-nums;}
+  .wheel-item.center{color:var(--text);font-weight:700;}
+  .timesep{font-size:22px;font-weight:700;color:var(--sub);padding-top:18px;}
+
+  .durrow{display:flex;gap:10px;}
+  .durrow .durfield{flex:1;display:flex;align-items:center;gap:6px;}
+  .durrow input[type=number]{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 10px;font-size:16px;text-align:center;background:#FAFAFC;}
+  .durrow span{font-size:13px;color:var(--sub);white-space:nowrap;}
+
+  .sig-wrap{border:1px solid var(--border);border-radius:14px;background:#FAFAFC;position:relative;}
+  canvas#sigPad{width:100%;height:160px;display:block;touch-action:none;border-radius:14px;}
+  .sig-placeholder{position:absolute;top:50%;left:0;right:0;text-align:center;transform:translateY(-50%);color:#C7C7CC;font-size:14px;pointer-events:none;}
+  .sig-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+  .sig-actions button{border:none;background:none;color:var(--blue);font-size:13px;font-weight:600;padding:6px 4px;font-family:inherit;}
+
+  .hint{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.5;}
+
+  .footer{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);}
+  .footer .inner{max-width:520px;margin:0 auto;}
+  .btn-submit{width:100%;background:var(--blue);color:#fff;border:none;border-radius:14px;padding:15px;font-size:17px;font-weight:700;font-family:inherit;}
+  .btn-submit:disabled{background:#C7C7CC;}
+  .errtext{color:var(--red);font-size:12px;margin-top:8px;text-align:center;white-space:pre-wrap;}
+
+  /* 완료 화면 */
+  #doneScreen{display:none;min-height:100vh;padding:40px 20px;text-align:center;}
+  #doneScreen[hidden]{display:none !important;}
+  .check{width:64px;height:64px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 18px;}
+  #doneScreen h2{font-size:19px;margin:0 0 8px;}
+  #doneScreen p{color:var(--sub);font-size:14px;line-height:1.6;margin:0 0 28px;}
+  .btn-outline{background:#fff;border:1px solid var(--border);color:var(--blue);border-radius:12px;padding:11px 18px;font-size:14px;font-weight:600;font-family:inherit;}
+  .history{margin-top:28px;text-align:left;}
+  .history h3{font-size:13px;color:var(--sub);margin-bottom:10px;}
+  .hist-item{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:13px;}
+  .hist-item b{font-size:14px;}
+  .hist-item .meta{color:var(--sub);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div id="formScreen">
+  <div class="topbar">
+    <h1>에듀핏 데이</h1>
+    <p>지각 · 조퇴 · 외출 · 결석 신고</p>
+  </div>
+
+  <div class="wrap">
+    <form id="submitForm">
+      <div class="card">
+        <h2>기본 정보</h2>
+        <div class="field">
+          <label>성명<span class="req">*</span></label>
+          <input type="text" id="f_name" required placeholder="홍길동">
+        </div>
+        <div class="field">
+          <label>아이디 (배움누리터)<span class="req">*</span></label>
+          <input type="text" id="f_uid" required placeholder="배움누리터 아이디">
+        </div>
+        <div class="field">
+          <label>연수과정</label>
+          <input type="text" id="f_course" value="2026년 신규공무원 공직적응과정">
+        </div>
+        <div class="field">
+          <label>소속</label>
+          <input type="text" id="f_org" placeholder="소속 부서 / 기관">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>구분</h2>
+        <div class="segment" id="f_type">
+          <button type="button" data-v="지각" class="active">지각</button>
+          <button type="button" data-v="조퇴">조퇴</button>
+          <button type="button" data-v="외출">외출</button>
+          <button type="button" data-v="결석">결석</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>일자 및 시간</h2>
+        <div class="field">
+          <label>해당일자<span class="req">*</span></label>
+          <input type="date" id="f_date" required>
+        </div>
+
+        <div class="field" id="timeFieldWrap">
+          <label>시작시각 / 종료시각</label>
+          <div class="timepair">
+            <div class="wheelbox">
+              <div class="wl">시작</div>
+              <div id="startWheel"></div>
+            </div>
+            <div class="timesep">→</div>
+            <div class="wheelbox">
+              <div class="wl">종료</div>
+              <div id="endWheel"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" id="durFieldWrap">
+          <label>결강시간 (자동 계산, 수동 수정 가능)</label>
+          <div class="durrow">
+            <div class="durfield">
+              <input type="number" id="f_durH" min="0" value="0">
+              <span>시간</span>
+            </div>
+            <div class="durfield">
+              <input type="number" id="f_durM" min="0" max="59" value="0">
+              <span>분</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>사유</h2>
+        <div class="field">
+          <label>사유<span class="req">*</span></label>
+          <textarea id="f_reason" required placeholder="사유를 입력해주세요"></textarea>
+        </div>
+        <div class="field">
+          <label>비고</label>
+          <textarea id="f_note" placeholder="(선택) 추가로 전달할 내용"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>서명<span class="req">*</span></h2>
+        <div class="sig-wrap">
+          <canvas id="sigPad"></canvas>
+          <div class="sig-placeholder" id="sigPlaceholder">여기에 서명해주세요</div>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sigClear">지우기</button>
+        </div>
+      </div>
+
+      <div id="submitError" class="errtext"></div>
+    </form>
+  </div>
+
+  <div class="footer">
+    <div class="inner">
+      <button type="submit" form="submitForm" class="btn-submit" id="submitBtn">제출하기</button>
+    </div>
+  </div>
+</div>
+
+<div id="doneScreen" hidden>
+  <div class="check">✓</div>
+  <h2>제출이 완료되었습니다</h2>
+  <p>담당자 검토 후 근태에 반영됩니다.</p>
+  <button class="btn-outline" id="backBtn">새로 제출하기</button>
+
+  <div class="history">
+    <h3>이 기기에서 보낸 제출 내역</h3>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<script>
+/* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw-INcYHGgQv2-3jZPRLfijwreTAVweSzifj4tNtPfT3r3bS1iXTnjKBWK2-d7FqIib/exec";
+
+/* ===== 구분 세그먼트 ===== */
+let selectedType = "지각";
+const typeSeg = document.getElementById('f_type');
+typeSeg.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  [...typeSeg.children].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedType = btn.dataset.v;
+  toggleTimeFields();
+});
+function toggleTimeFields(){
+  const show = selectedType !== '결석';
+  document.getElementById('timeFieldWrap').style.display = show ? '' : 'none';
+  document.getElementById('durFieldWrap').style.display = show ? '' : 'none';
+}
+toggleTimeFields();
+
+/* ===== 시간 휠 피커 ===== */
+function buildWheel(container, {is24=true}={}){
+  container.innerHTML = `
+    <div class="wheel-outer">
+      <div class="band"></div>
+      <div class="wheel-scroll" data-role="hour"></div>
+    </div>`;
+  // 시:분 두 개를 하나의 outer에 나란히 넣기보다, 컴팩트하게 시-분 두 wheel-outer로 구성
+  container.innerHTML = `
+    <div style="display:flex;gap:6px;">
+      <div class="wheel-outer" style="flex:1;position:relative;">
+        <div class="band"></div>
+        <div class="wheel-scroll" data-role="hour"></div>
+      </div>
+      <div class="wheel-outer" style="flex:1;position:relative;">
+        <div class="band"></div>
+        <div class="wheel-scroll" data-role="min"></div>
+      </div>
+    </div>`;
+  const hourScroll = container.querySelector('[data-role="hour"]');
+  const minScroll = container.querySelector('[data-role="min"]');
+
+  for(let h=0; h<24; h++){
+    const d = document.createElement('div');
+    d.className='wheel-item'; d.textContent=String(h).padStart(2,'0');
+    hourScroll.appendChild(d);
+  }
+  for(let m=0; m<60; m+=5){
+    const d = document.createElement('div');
+    d.className='wheel-item'; d.textContent=String(m).padStart(2,'0');
+    minScroll.appendChild(d);
+  }
+
+  const state = {hour:0, min:0};
+
+  function centerFor(scrollEl){
+    const items = scrollEl.querySelectorAll('.wheel-item');
+    const rect = scrollEl.getBoundingClientRect();
+    const centerY = rect.top + rect.height/2;
+    let closest = null, closestDist = Infinity, idx=0, closestIdx=0;
+    items.forEach((it,i)=>{
+      const r = it.getBoundingClientRect();
+      const iy = r.top + r.height/2;
+      const dist = Math.abs(iy-centerY);
+      if(dist<closestDist){closestDist=dist; closest=it; closestIdx=i;}
+    });
+    items.forEach(it=>it.classList.remove('center'));
+    if(closest) closest.classList.add('center');
+    return closestIdx;
+  }
+
+  function attach(scrollEl, onPick){
+    let t=null;
+    scrollEl.addEventListener('scroll', ()=>{
+      if(t) clearTimeout(t);
+      t = setTimeout(()=>{
+        const idx = centerFor(scrollEl);
+        onPick(idx);
+        if(container._onChange) container._onChange();
+      }, 90);
+    });
+  }
+  attach(hourScroll, (idx)=>{ state.hour = idx; });
+  attach(minScroll, (idx)=>{ state.min = idx*5; });
+
+  // 초기 표시(0시 0분)
+  setTimeout(()=>{ centerFor(hourScroll); centerFor(minScroll); }, 50);
+
+  container._state = state;
+  container._scrollTo = (h,m)=>{
+    const hi = Math.min(23, Math.max(0,h));
+    const mi = Math.min(11, Math.max(0, Math.round(m/5)));
+    hourScroll.scrollTop = hi*44;
+    minScroll.scrollTop = mi*44;
+    setTimeout(()=>{ centerFor(hourScroll); centerFor(minScroll); }, 30);
+    state.hour = hi; state.min = mi*5;
+  };
+  return container;
+}
+
+const startWheelEl = buildWheel(document.getElementById('startWheel'));
+const endWheelEl = buildWheel(document.getElementById('endWheel'));
+startWheelEl._scrollTo(9,0);
+endWheelEl._scrollTo(18,0);
+
+function recalcDuration(){
+  const sh = startWheelEl._state.hour, sm = startWheelEl._state.min;
+  const eh = endWheelEl._state.hour, em = endWheelEl._state.min;
+  let diff = (eh*60+em) - (sh*60+sm);
+  if(diff < 0) diff = 0;
+  document.getElementById('f_durH').value = Math.floor(diff/60);
+  document.getElementById('f_durM').value = diff%60;
+}
+startWheelEl._onChange = recalcDuration;
+endWheelEl._onChange = recalcDuration;
+setTimeout(recalcDuration, 200);
+
+/* ===== 서명 패드 ===== */
+const canvas = document.getElementById('sigPad');
+const ctx = canvas.getContext('2d');
+const sigPlaceholder = document.getElementById('sigPlaceholder');
+let drawing=false, hasSig=false;
+
+function resizeCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = rect.width*ratio;
+  canvas.height = 160*ratio;
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap='round';
+  ctx.strokeStyle = '#1C1C1E';
+}
+window.addEventListener('resize', ()=>{ const d=canvas.toDataURL(); resizeCanvas(); });
+resizeCanvas();
+
+function pos(e){
+  const rect = canvas.getBoundingClientRect();
+  return {x: e.clientX-rect.left, y: e.clientY-rect.top};
+}
+canvas.addEventListener('pointerdown', (e)=>{
+  drawing=true; hasSig=true; sigPlaceholder.style.display='none';
+  const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y);
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e)=>{
+  if(!drawing) return;
+  const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke();
+});
+canvas.addEventListener('pointerup', ()=>{ drawing=false; });
+canvas.addEventListener('pointercancel', ()=>{ drawing=false; });
+
+document.getElementById('sigClear').addEventListener('click', ()=>{
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  hasSig=false; sigPlaceholder.style.display='block';
+});
+
+/* ===== 로컬 제출 내역 ===== */
+const LOCAL_KEY = 'edufit_local_submissions';
+function loadLocalHistory(){
+  try{ return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }catch(e){ return []; }
+}
+function saveLocalHistory(item){
+  const list = loadLocalHistory();
+  list.unshift(item);
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(list.slice(0,50)));
+}
+function renderHistory(){
+  const list = loadLocalHistory();
+  const wrap = document.getElementById('historyList');
+  if(list.length===0){ wrap.innerHTML = '<div class="hist-item">아직 제출 내역이 없습니다.</div>'; return; }
+  wrap.innerHTML = list.map(it=>`
+    <div class="hist-item">
+      <b>${it.구분}</b> · ${it.해당일자}
+      <div class="meta">${it.시작시각||''} ${it.시작시각?'~':''} ${it.종료시각||''} ${it.제출일시?('· 제출 '+it.제출일시):''}</div>
+    </div>
+  `).join('');
+}
+
+/* ===== 제출 ===== */
+function genSubmissionId(){
+  return 'S' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+}
+
+document.getElementById('submitForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const errBox = document.getElementById('submitError');
+  errBox.textContent = '';
+
+  const name = document.getElementById('f_name').value.trim();
+  const uid = document.getElementById('f_uid').value.trim();
+  const date = document.getElementById('f_date').value;
+  const reason = document.getElementById('f_reason').value.trim();
+
+  if(!name || !uid || !date || !reason){
+    errBox.textContent = '필수 항목(*)을 모두 입력해주세요.';
+    return;
+  }
+  if(!hasSig){
+    errBox.textContent = '서명을 입력해주세요.';
+    return;
+  }
+  if(GAS_URL.indexOf('REPLACE_WITH') === 0){
+    errBox.textContent = '아직 서버 주소(GAS_URL)가 설정되지 않았습니다. 담당자에게 문의해주세요.';
+    return;
+  }
+
+  const showTime = selectedType !== '결석';
+  const payload = {
+    제출ID: genSubmissionId(),
+    성명: name,
+    아이디: uid,
+    연수과정: document.getElementById('f_course').value.trim(),
+    소속: document.getElementById('f_org').value.trim(),
+    구분: selectedType,
+    해당일자: date,
+    시작시각: showTime ? `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}` : '',
+    종료시각: showTime ? `${String(endWheelEl._state.hour).padStart(2,'0')}:${String(endWheelEl._state.min).padStart(2,'0')}` : '',
+    '결강시간(시간)': showTime ? Number(document.getElementById('f_durH').value||0) : '',
+    '결강시간(분)': showTime ? Number(document.getElementById('f_durM').value||0) : '',
+    사유: reason,
+    비고: document.getElementById('f_note').value.trim(),
+    서명: canvas.toDataURL('image/png')
+  };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '제출 중...';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 8000);
+
+  try{
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // CORS preflight 회피
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const data = await res.json();
+    if(!data.success){
+      throw new Error(data.error || '알 수 없는 오류로 제출에 실패했습니다.');
+    }
+    payload.제출일시 = new Date().toLocaleString('ko-KR');
+    saveLocalHistory(payload);
+    renderHistory();
+    document.getElementById('formScreen').style.display = 'none';
+    document.getElementById('doneScreen').hidden = false;
+  }catch(err){
+    clearTimeout(timeout);
+    if(err.name === 'AbortError'){
+      errBox.textContent = '서버 응답이 8초 이상 지연되어 요청을 중단했습니다. 네트워크 상태를 확인 후 다시 시도해주세요.';
+    }else{
+      errBox.textContent = '제출 중 오류가 발생했습니다: ' + err.message;
+    }
+  }finally{
+    btn.disabled = false; btn.textContent = '제출하기';
+  }
+});
+
+document.getElementById('backBtn').addEventListener('click', ()=>{
+  document.getElementById('doneScreen').hidden = true;
+  document.getElementById('formScreen').style.display = '';
+  document.getElementById('submitForm').reset();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  hasSig=false; sigPlaceholder.style.display='block';
+});
+</script>
+</body>
+</html>
