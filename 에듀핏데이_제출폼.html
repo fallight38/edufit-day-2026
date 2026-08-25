@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>2026년 신규공무원 공직적응과정</title>
+<title>2026년 신규공무원 공직적응과정 - 근태 신고</title>
 <style>
   :root{
     --blue:#007AFF;
@@ -101,6 +101,12 @@
   .errtext{color:var(--red);font-size:12px;margin-top:8px;text-align:center;white-space:pre-wrap;}
 
   .linkbtn{background:none;border:none;color:var(--blue);font-size:13px;font-weight:600;font-family:inherit;margin-top:8px;padding:4px;}
+  .btn-check{
+    background:#fff;border:1px solid var(--blue);color:var(--blue);
+    border-radius:10px;padding:8px 18px;font-size:14px;font-weight:600;
+    font-family:inherit;margin-top:10px;
+  }
+  .btn-check:active{background:#EAF3FF;}
 
   /* 완료 화면 — 표시/숨김은 아래 [hidden] 규칙으로만 제어한다.
      여기에 display:none을 두면 hidden을 제거해도 화면이 나타나지 않는다. */
@@ -133,7 +139,7 @@
   <div class="topbar">
     <h1>2026년 신규공무원 공직적응과정</h1>
     <p>지각 · 조퇴 · 외출 · 결석 신고</p>
-    <button type="button" class="linkbtn" id="toLookupBtn">승인 여부 확인</button>
+    <button type="button" class="btn-check" id="toLookupBtn">승인 여부 확인</button>
   </div>
 
   <div class="wrap">
@@ -145,13 +151,13 @@
           <input type="text" id="f_name" required placeholder="홍길동">
         </div>
         <div class="field">
-          <label>생년월일<span class="req">*</span></label>
-          <input type="text" id="f_birth" required inputmode="numeric" maxlength="6"
-                 placeholder="예: 930507" autocomplete="off">
-          <div class="hint">숫자 6자리로 입력해주세요. 승인 여부를 확인할 때 본인 확인용으로 쓰입니다.</div>
+          <label>아이디 (배움누리터)<span class="req">*</span></label>
+          <input type="text" id="f_uid" required autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="배움누리터 아이디">
+          <div class="hint">승인 여부를 확인할 때 본인 확인용으로 쓰입니다.</div>
         </div>
         <div class="field">
-          <label>교육훈련 과정</label>
+          <label>교육훈련과정</label>
           <input type="text" id="f_course" value="2026년 신규공무원 공직적응과정">
         </div>
       </div>
@@ -256,7 +262,7 @@
 <div id="lookupScreen" hidden>
   <div class="topbar">
     <h1>승인 여부 확인</h1>
-    <p>제출하신 성명과 생년월일을 입력해주세요</p>
+    <p>제출하신 성명과 아이디를 입력해주세요</p>
   </div>
   <div class="wrap">
     <div class="card">
@@ -265,8 +271,9 @@
         <input type="text" id="q_name" placeholder="제출할 때 입력한 성명">
       </div>
       <div class="field">
-        <label>생년월일<span class="req">*</span></label>
-        <input type="text" id="q_birth" inputmode="numeric" maxlength="6" placeholder="예: 930507" autocomplete="off">
+        <label>아이디 (배움누리터)<span class="req">*</span></label>
+        <input type="text" id="q_uid" autocomplete="off" autocapitalize="off" spellcheck="false"
+               placeholder="제출할 때 입력한 아이디">
       </div>
       <button class="btn-submit" id="lookupBtn" style="margin-top:4px;">조회하기</button>
       <div id="lookupError" class="errtext"></div>
@@ -545,16 +552,12 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   errBox.textContent = '';
 
   const name = document.getElementById('f_name').value.trim();
-  const birth = document.getElementById('f_birth').value.trim();
+  const uid = document.getElementById('f_uid').value.trim();
   const date = document.getElementById('f_date').value;
   const reason = document.getElementById('f_reason').value.trim();
 
-  if(!name || !birth || !date || !reason){
+  if(!name || !uid || !date || !reason){
     errBox.textContent = '필수 항목(*)을 모두 입력해주세요.';
-    return;
-  }
-  if(!/^\d{6}$/.test(birth)){
-    errBox.textContent = '생년월일은 숫자 6자리로 입력해주세요. (예: 930507)';
     return;
   }
   if(!hasSignature()){
@@ -575,8 +578,8 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   const payload = {
     제출ID: genSubmissionId(),
     성명: name,
-    생년월일: birth,
-    연수과정: document.getElementById('f_course').value.trim(),
+    아이디: uid,
+    교육훈련과정: document.getElementById('f_course').value.trim(),
     구분: selectedType,
     해당일자: date,
     시작시각: showTime ? `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}` : '',
@@ -647,13 +650,13 @@ document.getElementById('backFromLookupBtn').addEventListener('click', ()=>showS
 function prefillLookup(){
   // 직전 제출/입력값이 있으면 자동으로 채워서 조회 편의 제공
   const name = document.getElementById('f_name').value.trim();
-  const birth = document.getElementById('f_birth').value.trim();
+  const uid = document.getElementById('f_uid').value.trim();
   const last = loadLocalHistory()[0];
   if(!document.getElementById('q_name').value){
     document.getElementById('q_name').value = name || (last ? last.성명 : '');
   }
-  if(!document.getElementById('q_birth').value){
-    document.getElementById('q_birth').value = birth || (last ? (last.생년월일||'') : '');
+  if(!document.getElementById('q_uid').value){
+    document.getElementById('q_uid').value = uid || (last ? (last.아이디||'') : '');
   }
 }
 
@@ -664,12 +667,8 @@ document.getElementById('lookupBtn').addEventListener('click', async ()=>{
   errBox.textContent = ''; resultBox.innerHTML = '';
 
   const name = document.getElementById('q_name').value.trim();
-  const birth = document.getElementById('q_birth').value.trim();
-  if(!name || !birth){ errBox.textContent = '성명과 생년월일을 모두 입력해주세요.'; return; }
-  if(!/^\d{6}$/.test(birth)){
-    errBox.textContent = '생년월일은 숫자 6자리로 입력해주세요. (예: 930507)';
-    return;
-  }
+  const uid = document.getElementById('q_uid').value.trim();
+  if(!name || !uid){ errBox.textContent = '성명과 아이디를 모두 입력해주세요.'; return; }
   if(GAS_URL.indexOf('REPLACE_WITH') === 0){
     errBox.textContent = '아직 서버 주소(GAS_URL)가 설정되지 않았습니다. 담당자에게 문의해주세요.';
     return;
@@ -681,7 +680,7 @@ document.getElementById('lookupBtn').addEventListener('click', async ()=>{
   const controller = new AbortController();
   const timeout = setTimeout(()=>controller.abort(), 8000);
   try{
-    const url = `${GAS_URL}?action=status&name=${encodeURIComponent(name)}&birth=${encodeURIComponent(birth)}`;
+    const url = `${GAS_URL}?action=status&name=${encodeURIComponent(name)}&uid=${encodeURIComponent(uid)}`;
     const res = await fetch(url, {signal: controller.signal});
     clearTimeout(timeout);
     const data = await res.json();
@@ -689,7 +688,7 @@ document.getElementById('lookupBtn').addEventListener('click', async ()=>{
 
     const list = data.data || [];
     if(list.length === 0){
-      resultBox.innerHTML = '<div class="status-item"><div class="detail">해당 성명·생년월일로 접수된 제출 내역이 없습니다. 입력값을 다시 확인해주세요.</div></div>';
+      resultBox.innerHTML = '<div class="status-item"><div class="detail">해당 성명·아이디로 접수된 제출 내역이 없습니다. 입력값을 다시 확인해주세요.</div></div>';
       return;
     }
     resultBox.innerHTML = list.slice().reverse().map(renderStatusItem).join('');
