@@ -629,6 +629,26 @@ function renderHistory(){
    같은 제출ID를 중복으로 인식해 두 번 기록되지 않는다. */
 let pendingSubmissionId = null;
 
+/* 휴대전화 화면이 꺼지거나 다른 앱으로 전환되면, 진행 중이던 요청이 응답도 오류도 없이
+   멈춘 채 남을 수 있다. 그러면 제출 버튼이 '제출 중...'으로 잠긴 채 눌리지 않는다.
+   화면으로 돌아왔을 때 오래 멈춰 있던 요청을 정리해 버튼을 되살린다. */
+let activeSubmit = null;
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible') return;
+
+  if(activeSubmit && Date.now() - activeSubmit.startedAt > 15000){
+    activeSubmit.controller.abort();   // 중단시키면 아래 finally에서 버튼이 복구된다
+    return;
+  }
+  // 요청 기록이 없는데 버튼만 잠겨 있는 경우에도 되살린다
+  const btn = document.getElementById('submitBtn');
+  if(!activeSubmit && btn && btn.disabled){
+    btn.disabled = false;
+    btn.textContent = '제출하기';
+  }
+});
+
 function genSubmissionId(){
   return 'S' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
 }
@@ -684,6 +704,8 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   btn.disabled = true; btn.textContent = '제출 중...';
 
   const controller = new AbortController();
+  // 화면이 꺼졌다 돌아왔을 때 멈춘 요청을 정리할 수 있도록 기억해둔다
+  activeSubmit = { controller: controller, startedAt: Date.now() };
   // 앱스 스크립트는 한동안 사용이 없으면 첫 응답이 느리다. 짧게 잡으면
   // 실제로는 저장됐는데 실패로 보이는 상황이 생기므로 넉넉히 기다린다.
   const timeout = setTimeout(()=>controller.abort(), 20000);
@@ -715,6 +737,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
       errBox.textContent = '제출 중 오류가 발생했습니다: ' + err.message;
     }
   }finally{
+    activeSubmit = null;
     btn.disabled = false; btn.textContent = '제출하기';
   }
 });

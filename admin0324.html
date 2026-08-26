@@ -328,6 +328,7 @@ async function loadEntries(){
     if(reqId !== listRequestId) return;   // 더 최신 요청이 있으면 이 결과는 버린다
     if(!data.success) throw new Error(data.error || '목록을 불러오지 못했습니다.');
     currentEntries = data.data || [];
+    lastLoadedAt = Date.now();
     statusEl.textContent = '';
     renderEntries();
   }catch(err){
@@ -776,6 +777,17 @@ function unlockAdmin(){
   loadEntries();
   refreshBadge();
 }
+
+/* 휴대전화 화면이 꺼졌다가 돌아오면 진행 중이던 요청이 멈춘 채 남을 수 있다.
+   화면으로 돌아왔을 때 목록을 다시 불러와 멈춘 상태를 정리하고 최신 내용을 보여준다. */
+let lastLoadedAt = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible') return;
+  if(document.getElementById('adminScreen').style.display === 'none') return;  // 아직 잠금 상태면 무시
+  if(Date.now() - lastLoadedAt < 30000) return;   // 방금 불러왔으면 다시 부르지 않는다
+  loadEntries();
+  refreshBadge();
+});
 
 if(isUnlocked()){
   unlockAdmin();
