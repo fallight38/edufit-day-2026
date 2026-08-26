@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>2026년 신규공무원 공직적응과정 - 근태 신고</title>
+<style>
+  :root{
+    --blue:#007AFF;
+    --blue-dark:#0062CC;
+    --bg:#F2F2F7;
+    --card:#FFFFFF;
+    --text:#1C1C1E;
+    --sub:#8A8A8E;
+    --border:#E5E5EA;
+    --red:#FF3B30;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);overflow-x:hidden;}
+  .card{overflow:hidden;}
+  body{padding-bottom:96px;}
+  .topbar{position:sticky;top:0;z-index:10;background:rgba(242,242,247,.92);backdrop-filter:blur(10px);padding:16px 20px 10px;text-align:center;}
+  .topbar h1{font-size:20px;margin:0 0 2px;font-weight:700;}
+  .topbar p{font-size:13px;color:var(--sub);margin:0;}
+  .wrap{max-width:520px;margin:0 auto;padding:12px 16px;}
+  .card{background:var(--card);border-radius:22px;padding:18px 18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .card h2{font-size:14px;font-weight:700;color:var(--sub);margin:0 0 12px;letter-spacing:.02em;}
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+  label .req{color:var(--red);margin-left:2px;}
+  input[type=text], input[type=date], textarea{
+    width:100%;max-width:100%;min-width:0;border:1px solid var(--border);border-radius:12px;padding:12px 14px;
+    font-size:16px;font-family:inherit;background:#FAFAFC;color:var(--text);outline:none;
+  }
+  /* iOS Safari는 날짜 입력칸에 자체 기본 너비를 적용해 width:100%를 무시한다.
+     기본 스타일을 끄고 너비/높이를 직접 지정해야 카드 밖으로 넘치지 않는다. */
+  input[type=date]{
+    -webkit-appearance:none;appearance:none;
+    display:block;width:100%;max-width:100%;min-width:0;
+    height:48px;line-height:22px;text-align:left;
+  }
+  input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;width:100%;}
+  input[type=date]::-webkit-calendar-picker-indicator{margin-left:auto;}
+  /* 어떤 이유로든 내용이 넘칠 경우 카드 밖으로 삐져나가지 않도록 차단 */
+  .field{max-width:100%;overflow:hidden;}
+  input:focus, textarea:focus{border-color:var(--blue);background:#fff;}
+  textarea{resize:vertical;min-height:64px;}
+
+  .segment{display:flex;background:#E9E9EF;border-radius:12px;padding:3px;gap:3px;}
+  .segment button{
+    flex:1;border:none;background:transparent;padding:10px 4px;border-radius:9px;
+    font-size:14px;font-weight:600;color:var(--text);font-family:inherit;
+  }
+  .segment button.active{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+
+  .timepair{display:flex;gap:10px;align-items:center;}
+  .wheelbox{flex:1;}
+  .wheelbox .wl{font-size:12px;color:var(--sub);margin-bottom:6px;text-align:center;}
+  .wheel-outer{position:relative;height:132px;overflow:hidden;border-radius:14px;background:#FAFAFC;border:1px solid var(--border);}
+  .wheel-outer .band{position:absolute;left:0;right:0;top:44px;height:44px;background:rgba(0,122,255,.08);border-top:1px solid rgba(0,122,255,.25);border-bottom:1px solid rgba(0,122,255,.25);pointer-events:none;}
+  .wheel-scroll{height:132px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:44px 0;}
+  .wheel-scroll::-webkit-scrollbar{display:none;}
+  .wheel-item{height:44px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:20px;color:#C7C7CC;font-variant-numeric:tabular-nums;}
+  .wheel-item.center{color:var(--text);font-weight:700;}
+  .timesep{font-size:22px;font-weight:700;color:var(--sub);padding-top:18px;}
+
+  .durrow{display:flex;gap:10px;}
+  .durrow .durfield{flex:1;display:flex;align-items:center;gap:6px;}
+  .durrow input[type=number]{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 10px;font-size:16px;text-align:center;background:#FAFAFC;}
+  .durrow span{font-size:13px;color:var(--sub);white-space:nowrap;}
+
+  .absent-box{
+    display:flex;align-items:center;justify-content:space-between;
+    border:1px solid var(--border);border-radius:12px;padding:14px;background:#FAFAFC;
+  }
+  .absent-box b{font-size:17px;font-variant-numeric:tabular-nums;}
+  .absent-box span{font-size:15px;color:var(--blue);font-weight:600;}
+
+  .sig-wrap{border:1px solid var(--border);border-radius:14px;background:#FAFAFC;position:relative;}
+  .sig-wrap.missing{border-color:var(--red);background:#FFF7F7;}
+  /* 손가락으로 서명하거나 휠을 돌릴 때 텍스트가 선택되거나
+     길게 누르기 메뉴가 뜨지 않도록 차단한다 (iOS Safari 기본 동작). */
+  .sig-wrap, .sig-wrap *, .sig-actions, .sig-actions *,
+  .wheel-outer, .wheel-outer *, .segment, .segment *{
+    -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
+  }
+  /* 드래그가 캔버스를 벗어나면 그 아래 요소들이 선택되므로,
+     서명하는 동안에는 페이지 전체의 텍스트 선택을 잠근다. */
+  body.drawing, body.drawing *{
+    -webkit-user-select:none !important;-moz-user-select:none !important;
+    -ms-user-select:none !important;user-select:none !important;
+    -webkit-touch-callout:none !important;
+  }
+  canvas#sigPad{touch-action:none;}
+  canvas#sigPad{width:100%;height:160px;display:block;touch-action:none;border-radius:14px;}
+  .sig-placeholder{position:absolute;top:50%;left:0;right:0;text-align:center;transform:translateY(-50%);color:#C7C7CC;font-size:14px;pointer-events:none;}
+  .sig-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+  .sig-actions button{border:none;background:none;color:var(--blue);font-size:13px;font-weight:600;padding:6px 4px;font-family:inherit;}
+
+  .hint{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.5;}
+
+  .footer{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);}
+  .footer .inner{max-width:520px;margin:0 auto;}
+  .btn-submit{width:100%;background:var(--blue);color:#fff;border:none;border-radius:14px;padding:15px;font-size:17px;font-weight:700;font-family:inherit;}
+  .btn-submit:disabled{background:#C7C7CC;}
+  .errtext{color:var(--red);font-size:12px;margin-top:8px;text-align:center;white-space:pre-wrap;}
+
+  .linkbtn{background:none;border:none;color:var(--blue);font-size:13px;font-weight:600;font-family:inherit;margin-top:8px;padding:4px;}
+  .btn-check{
+    background:#fff;border:1px solid var(--blue);color:var(--blue);
+    border-radius:10px;padding:8px 18px;font-size:14px;font-weight:600;
+    font-family:inherit;margin-top:10px;
+  }
+  .btn-check:active{background:#EAF3FF;}
+
+  /* 완료 화면 — 표시/숨김은 아래 [hidden] 규칙으로만 제어한다.
+     여기에 display:none을 두면 hidden을 제거해도 화면이 나타나지 않는다. */
+  #doneScreen{display:block;min-height:100vh;padding:40px 20px;text-align:center;}
+  #doneScreen[hidden]{display:none !important;}
+  #lookupScreen[hidden]{display:none !important;}
+
+  .status-item{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:10px;}
+  .status-item .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .status-item .top b{font-size:15px;}
+  .status-item .detail{font-size:13px;color:var(--sub);line-height:1.6;}
+  .st{display:inline-block;padding:4px 11px;border-radius:9px;font-size:12.5px;font-weight:700;}
+  .st.대기{background:#FFF3CD;color:#8A6D00;}
+  .st.승인{background:#DCF5E3;color:#1B7A38;}
+  .st.반려{background:#FFE1E1;color:#C81E1E;}
+  .check{width:64px;height:64px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 18px;}
+  #doneScreen h2{font-size:19px;margin:0 0 8px;}
+  #doneScreen p{color:var(--sub);font-size:14px;line-height:1.6;margin:0 0 28px;}
+  .btn-outline{background:#fff;border:1px solid var(--border);color:var(--blue);border-radius:12px;padding:11px 18px;font-size:14px;font-weight:600;font-family:inherit;}
+  .history{margin-top:28px;text-align:left;}
+  .history h3{font-size:13px;color:var(--sub);margin-bottom:10px;}
+  .hist-item{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:13px;}
+  .hist-item b{font-size:14px;}
+  .hist-item .meta{color:var(--sub);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div id="formScreen">
+  <div class="topbar">
+    <h1>2026년 신규공무원 공직적응과정</h1>
+    <p>지각 · 조퇴 · 외출 · 결석 신고</p>
+    <button type="button" class="btn-check" id="toLookupBtn">승인 여부 확인</button>
+  </div>
+
+  <div class="wrap">
+    <form id="submitForm">
+      <div class="card">
+        <h2>기본 정보</h2>
+        <div class="field">
+          <label>성명<span class="req">*</span></label>
+          <input type="text" id="f_name" required placeholder="홍길동">
+        </div>
+        <div class="field">
+          <label>아이디 (배움누리터)<span class="req">*</span></label>
+          <input type="text" id="f_uid" required autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="배움누리터 아이디">
+          <div class="hint">승인 여부를 확인할 때 본인 확인용으로 쓰입니다.</div>
+        </div>
+        <div class="field">
+          <label>교육훈련과정</label>
+          <input type="text" id="f_course" value="2026년 신규공무원 공직적응과정">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>구분</h2>
+        <div class="segment" id="f_type">
+          <button type="button" data-v="지각" class="active">지각</button>
+          <button type="button" data-v="조퇴">조퇴</button>
+          <button type="button" data-v="외출">외출</button>
+          <button type="button" data-v="결석">결석</button>
+        </div>
+        <div id="subTypeWrap" style="display:none;margin-top:14px;">
+          <label>결석 세부구분</label>
+          <div class="segment" id="f_subtype">
+            <button type="button" data-v="" class="active">일반</button>
+            <button type="button" data-v="공가">공가</button>
+            <button type="button" data-v="특별휴가">특별휴가</button>
+          </div>
+          <div class="hint">증빙 서류를 담당자에게 제출해주세요.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>일자 및 시간</h2>
+        <div class="field">
+          <label>해당일자<span class="req">*</span></label>
+          <input type="date" id="f_date" required>
+        </div>
+
+        <div class="field" id="timeFieldWrap">
+          <label>시작시각 / 종료시각</label>
+          <div class="timepair">
+            <div class="wheelbox">
+              <div class="wl">시작</div>
+              <div id="startWheel"></div>
+            </div>
+            <div class="timesep">→</div>
+            <div class="wheelbox">
+              <div class="wl">종료</div>
+              <div id="endWheel"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" id="durFieldWrap">
+          <label>결강시간 (자동 계산, 수동 수정 가능)</label>
+          <div class="durrow">
+            <div class="durfield">
+              <input type="number" id="f_durH" min="0" value="0">
+              <span>시간</span>
+            </div>
+            <div class="durfield">
+              <input type="number" id="f_durM" min="0" max="59" value="0">
+              <span>분</span>
+            </div>
+          </div>
+          <div class="hint" id="lunchNote">점심시간(12:00~13:00)은 산출 시간에서 제외됩니다.</div>
+        </div>
+
+        <div class="field" id="absentInfo" style="display:none;">
+          <label>결강시간</label>
+          <div class="absent-box">
+            <b>09:00 ~ 16:50</b>
+            <span>7시간 0분</span>
+          </div>
+          <div class="hint">결석은 하루 전체 결강으로 기록되며, 시간을 따로 입력하지 않습니다.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>사유</h2>
+        <div class="field">
+          <label>사유<span class="req">*</span></label>
+          <textarea id="f_reason" required placeholder="사유를 입력해주세요"></textarea>
+        </div>
+        <div class="field">
+          <label>비고</label>
+          <textarea id="f_note" placeholder="(선택) 추가로 전달할 내용"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>서명<span class="req">*</span></h2>
+        <div class="sig-wrap">
+          <canvas id="sigPad"></canvas>
+          <div class="sig-placeholder" id="sigPlaceholder">여기에 서명해주세요</div>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sigClear">지우기</button>
+        </div>
+      </div>
+
+      <div id="submitError" class="errtext"></div>
+    </form>
+  </div>
+
+  <div class="footer">
+    <div class="inner">
+      <button type="submit" form="submitForm" class="btn-submit" id="submitBtn">제출하기</button>
+    </div>
+  </div>
+</div>
+
+<div id="doneScreen" hidden>
+  <div class="check">✓</div>
+  <h2>제출 완료되었습니다</h2>
+  <p>담당자 승인 후에 확정됩니다.</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button class="btn-outline" id="backBtn">새로 제출하기</button>
+    <button class="btn-outline" id="toLookupBtn2">승인 여부 확인</button>
+  </div>
+
+  <div class="history">
+    <h3>이 기기에서 보낸 제출 내역</h3>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<div id="lookupScreen" hidden>
+  <div class="topbar">
+    <h1>승인 여부 확인</h1>
+    <p>제출하신 성명과 아이디를 입력해주세요</p>
+  </div>
+  <div class="wrap">
+    <div class="card">
+      <div class="field">
+        <label>성명<span class="req">*</span></label>
+        <input type="text" id="q_name" placeholder="제출할 때 입력한 성명">
+      </div>
+      <div class="field">
+        <label>아이디 (배움누리터)<span class="req">*</span></label>
+        <input type="text" id="q_uid" autocomplete="off" autocapitalize="off" spellcheck="false"
+               placeholder="제출할 때 입력한 아이디">
+      </div>
+      <button class="btn-submit" id="lookupBtn" style="margin-top:4px;">조회하기</button>
+      <div id="lookupError" class="errtext"></div>
+    </div>
+
+    <div id="lookupResult"></div>
+
+    <div style="text-align:center;margin-top:8px;">
+      <button class="btn-outline" id="backFromLookupBtn">제출 화면으로</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
+const GAS_URL = "https://script.google.com/macros/s/AKfycby2yulslyLNX7f7mvdNGLsM3SbdS4I2Ug74x_qLFqnymMbrl7Wpbjk0T1RpPMNEfxyo/exec";
+
+/* ===== 구분 세그먼트 ===== */
+let selectedType = "지각";
+const typeSeg = document.getElementById('f_type');
+typeSeg.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  [...typeSeg.children].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedType = btn.dataset.v;
+  toggleTimeFields();
+});
+/* 결석은 하루 전체 결강으로 보아 아래 고정값으로 기록한다 (교육시수 기준). */
+const ABSENT = { start:'09:00', end:'16:50', hours:7, minutes:0 };
+
+/* 결석 세부구분 (공가 / 특별휴가) — 결석을 고른 경우에만 표시 */
+let selectedSubType = '';
+const subTypeSeg = document.getElementById('f_subtype');
+subTypeSeg.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  [...subTypeSeg.children].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSubType = btn.dataset.v;
+});
+
+function resetSubType(){
+  [...subTypeSeg.children].forEach((b,i)=>b.classList.toggle('active', i===0));
+  selectedSubType = '';
+}
+
+function toggleTimeFields(){
+  const show = selectedType !== '결석';
+  document.getElementById('timeFieldWrap').style.display = show ? '' : 'none';
+  document.getElementById('durFieldWrap').style.display = show ? '' : 'none';
+  const box = document.getElementById('absentInfo');
+  if(box) box.style.display = show ? 'none' : '';
+  const sub = document.getElementById('subTypeWrap');
+  if(sub) sub.style.display = show ? 'none' : '';
+  if(show) resetSubType();   // 결석이 아니면 세부구분은 비워둔다
+}
+toggleTimeFields();
+
+/* ===== 시간 휠 피커 ===== */
+function buildWheel(container, {is24=true}={}){
+  container.innerHTML = `
+    <div class="wheel-outer">
+      <div class="band"></div>
+      <div class="wheel-scroll" data-role="hour"></div>
+    </div>`;
+  // 시:분 두 개를 하나의 outer에 나란히 넣기보다, 컴팩트하게 시-분 두 wheel-outer로 구성
+  container.innerHTML = `
+    <div style="display:flex;gap:6px;">
+      <div class="wheel-outer" style="flex:1;position:relative;">
+        <div class="band"></div>
+        <div class="wheel-scroll" data-role="hour"></div>
+      </div>
+      <div class="wheel-outer" style="flex:1;position:relative;">
+        <div class="band"></div>
+        <div class="wheel-scroll" data-role="min"></div>
+      </div>
+    </div>`;
+  const hourScroll = container.querySelector('[data-role="hour"]');
+  const minScroll = container.querySelector('[data-role="min"]');
+
+  for(let h=0; h<24; h++){
+    const d = document.createElement('div');
+    d.className='wheel-item'; d.textContent=String(h).padStart(2,'0');
+    hourScroll.appendChild(d);
+  }
+  for(let m=0; m<60; m+=5){
+    const d = document.createElement('div');
+    d.className='wheel-item'; d.textContent=String(m).padStart(2,'0');
+    minScroll.appendChild(d);
+  }
+
+  const state = {hour:0, min:0};
+
+  function centerFor(scrollEl){
+    const items = scrollEl.querySelectorAll('.wheel-item');
+    const rect = scrollEl.getBoundingClientRect();
+    const centerY = rect.top + rect.height/2;
+    let closest = null, closestDist = Infinity, idx=0, closestIdx=0;
+    items.forEach((it,i)=>{
+      const r = it.getBoundingClientRect();
+      const iy = r.top + r.height/2;
+      const dist = Math.abs(iy-centerY);
+      if(dist<closestDist){closestDist=dist; closest=it; closestIdx=i;}
+    });
+    items.forEach(it=>it.classList.remove('center'));
+    if(closest) closest.classList.add('center');
+    return closestIdx;
+  }
+
+  function attach(scrollEl, onPick){
+    let t=null;
+    scrollEl.addEventListener('scroll', ()=>{
+      if(t) clearTimeout(t);
+      t = setTimeout(()=>{
+        const idx = centerFor(scrollEl);
+        onPick(idx);
+        if(container._onChange) container._onChange();
+      }, 90);
+    });
+  }
+  attach(hourScroll, (idx)=>{ state.hour = idx; });
+  attach(minScroll, (idx)=>{ state.min = idx*5; });
+
+  // 초기 표시(0시 0분)
+  setTimeout(()=>{ centerFor(hourScroll); centerFor(minScroll); }, 50);
+
+  container._state = state;
+  container._scrollTo = (h,m)=>{
+    const hi = Math.min(23, Math.max(0,h));
+    const mi = Math.min(11, Math.max(0, Math.round(m/5)));
+    hourScroll.scrollTop = hi*44;
+    minScroll.scrollTop = mi*44;
+    setTimeout(()=>{ centerFor(hourScroll); centerFor(minScroll); }, 30);
+    state.hour = hi; state.min = mi*5;
+  };
+  return container;
+}
+
+const startWheelEl = buildWheel(document.getElementById('startWheel'));
+const endWheelEl = buildWheel(document.getElementById('endWheel'));
+startWheelEl._scrollTo(9,0);
+endWheelEl._scrollTo(18,0);
+
+/* 점심시간(12:00~13:00)은 결강시간에서 제외한다. */
+const LUNCH_START = 12*60, LUNCH_END = 13*60;
+
+function overlapMinutes(aStart, aEnd, bStart, bEnd){
+  return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
+}
+
+function recalcDuration(){
+  const sh = startWheelEl._state.hour, sm = startWheelEl._state.min;
+  const eh = endWheelEl._state.hour, em = endWheelEl._state.min;
+  const start = sh*60 + sm, end = eh*60 + em;
+
+  let diff = end - start;
+  if(diff < 0) diff = 0;
+
+  const lunch = overlapMinutes(start, end, LUNCH_START, LUNCH_END);
+  diff = Math.max(0, diff - lunch);
+
+  document.getElementById('f_durH').value = Math.floor(diff/60);
+  document.getElementById('f_durM').value = diff%60;
+}
+startWheelEl._onChange = recalcDuration;
+endWheelEl._onChange = recalcDuration;
+setTimeout(recalcDuration, 200);
+
+/* ===== 서명 패드 ===== */
+const canvas = document.getElementById('sigPad');
+const ctx = canvas.getContext('2d');
+const sigPlaceholder = document.getElementById('sigPlaceholder');
+let drawing = false;
+let strokePoints = 0;            // 실제로 그려진 점의 개수 (단순 터치 1회는 서명으로 인정하지 않음)
+const MIN_STROKE_POINTS = 5;
+
+function hasSignature(){ return strokePoints >= MIN_STROKE_POINTS; }
+
+function applyPenStyle(){
+  const ratio = window.devicePixelRatio || 1;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#1C1C1E';
+}
+
+function resizeCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(rect.width * ratio));
+  const h = Math.round(160 * ratio);
+  if(canvas.width === w && canvas.height === h) return; // 크기가 같으면 다시 그리지 않는다
+  // 캔버스 크기를 바꾸면 내용이 지워지므로, 기존 서명을 저장했다가 되살린다
+  const prev = (canvas.width && canvas.height) ? canvas.toDataURL() : null;
+  const hadSig = hasSignature();
+  canvas.width = w;
+  canvas.height = h;
+  applyPenStyle();
+  if(prev && hadSig){
+    const img = new Image();
+    img.onload = ()=>{ ctx.drawImage(img, 0, 0, rect.width, 160); };
+    img.src = prev;
+  }
+}
+
+// 휴대전화에서 입력칸을 누르면 키보드가 올라오며 resize가 발생한다.
+// 이때 서명이 지워지지 않도록 위에서 복원 처리하고, 잦은 호출은 묶어서 처리한다.
+let resizeTimer = null;
+window.addEventListener('resize', ()=>{
+  if(resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resizeCanvas, 150);
+});
+resizeCanvas();
+
+// iOS Safari에서 손가락으로 서명할 때 텍스트 선택이나 길게 누르기 메뉴가 뜨는 것을 막는다.
+// 주의: touchstart의 기본 동작을 막으면 포인터 이벤트가 발생하지 않아 서명 자체가 그려지지 않는다.
+// 따라서 선택 차단은 CSS(user-select/touch-callout)와 아래 두 이벤트로만 처리한다.
+canvas.addEventListener('contextmenu', (e)=>e.preventDefault());
+canvas.addEventListener('selectstart', (e)=>e.preventDefault());
+
+/* 구글 시트는 셀 하나에 50,000자까지만 저장한다.
+   고해상도 기기(아이폰 등)에서는 서명 원본이 이 한도를 넘어 잘리므로,
+   전송 전에 크기를 줄여 충분히 여유 있는 범위로 맞춘다.
+   앱스 스크립트에는 이미지 크기 조절 기능이 없어 이 작업은 반드시 브라우저에서 해야 한다. */
+const SIG_MAX_CHARS = 30000;
+
+function exportSignature(){
+  const ratio = window.devicePixelRatio || 1;
+  const cssW = canvas.width / ratio;
+  const cssH = canvas.height / ratio;
+
+  // 기기 배율과 무관하게 일정한 크기로 다시 그린다.
+  // 원본보다 크게 늘리면 용량만 커지므로 원본 픽셀 폭을 넘지 않게 한다.
+  let targetW = Math.min(480, canvas.width);
+  let lastUrl = '';
+  for(let attempt = 0; attempt < 8; attempt++){
+    const targetH = Math.max(1, Math.round(targetW * (cssH / cssW)));
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, targetW);
+    off.height = targetH;
+    const octx = off.getContext('2d');
+    octx.drawImage(canvas, 0, 0, off.width, off.height);
+    lastUrl = off.toDataURL('image/png');
+    if(lastUrl.length <= SIG_MAX_CHARS) return lastUrl;
+    targetW = Math.round(targetW * 0.75);   // 여전히 크면 더 줄여서 재시도
+  }
+  // 8회까지 줄여도 한도를 넘는 경우는 사실상 없지만, 원본이 아닌 가장 작게 줄인 결과를 보낸다
+  return lastUrl;
+}
+
+function pos(e){
+  const rect = canvas.getBoundingClientRect();
+  return {x: e.clientX-rect.left, y: e.clientY-rect.top};
+}
+canvas.addEventListener('pointerdown', (e)=>{
+  drawing = true;
+  document.body.classList.add('drawing');   // 서명 중 페이지 전체 선택 잠금
+  sigPlaceholder.style.display = 'none';
+  const p = pos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e)=>{
+  if(!drawing) return;
+  const p = pos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+  strokePoints++;
+  if(strokePoints === MIN_STROKE_POINTS) updateSigState();
+});
+function endStroke(){
+  drawing = false;
+  document.body.classList.remove('drawing');
+  // 드래그 도중 만들어진 선택 영역이 남아 있으면 해제한다
+  const sel = window.getSelection && window.getSelection();
+  if(sel && sel.removeAllRanges) sel.removeAllRanges();
+  updateSigState();
+}
+canvas.addEventListener('pointerup', endStroke);
+canvas.addEventListener('pointercancel', endStroke);
+
+function clearSignature(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  strokePoints = 0;
+  sigPlaceholder.style.display = 'block';
+  updateSigState();
+}
+
+let submitAttempted = false;   // 제출을 눌러 검증에 걸린 적이 있는지
+
+function updateSigState(){
+  const wrap = document.querySelector('.sig-wrap');
+  // 아직 제출을 시도하지 않았다면 붉은 표시를 하지 않는다 (지우기만 눌러도 경고가 뜨는 것 방지)
+  if(wrap) wrap.classList.toggle('missing', submitAttempted && !hasSignature());
+  if(!hasSignature() && !drawing) sigPlaceholder.style.display = 'block';
+}
+
+document.getElementById('sigClear').addEventListener('click', clearSignature);
+
+/* ===== 로컬 제출 내역 ===== */
+const LOCAL_KEY = 'edufit_local_submissions';
+function loadLocalHistory(){
+  try{ return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }catch(e){ return []; }
+}
+function saveLocalHistory(item){
+  // Base64 서명을 localStorage에 넣으면 몇 건만으로 브라우저 용량 한도를 넘는다.
+  const summary = {
+    제출ID:item.제출ID, 성명:item.성명, 아이디:item.아이디,
+    구분:item.구분, 세부구분:item.세부구분, 해당일자:item.해당일자,
+    시작시각:item.시작시각, 종료시각:item.종료시각, 제출일시:item.제출일시
+  };
+  try{
+    const list = loadLocalHistory();
+    list.unshift(summary);
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(list.slice(0,50)));
+  }catch(e){
+    // 로컬 이력 저장 실패가 이미 성공한 서버 제출을 실패처럼 보이게 해서는 안 된다.
+    console.warn('로컬 제출 이력을 저장하지 못했습니다.', e);
+  }
+}
+function renderHistory(){
+  const list = loadLocalHistory();
+  const wrap = document.getElementById('historyList');
+  if(list.length===0){ wrap.innerHTML = '<div class="hist-item">아직 제출 내역이 없습니다.</div>'; return; }
+  wrap.innerHTML = list.map(it=>`
+    <div class="hist-item">
+      <b>${escHtml(it.구분||'')}${it.세부구분 ? ' ('+escHtml(it.세부구분)+')' : ''}</b> · ${escHtml(fmtDate(it.해당일자))}
+      <div class="meta">${escHtml(fmtTime(it.시작시각))} ${it.시작시각?'~':''} ${escHtml(fmtTime(it.종료시각))} ${it.제출일시?('· 제출 '+escHtml(fmtDateTime(it.제출일시))):''}</div>
+    </div>
+  `).join('');
+}
+
+/* ===== 제출 ===== */
+/* 제출ID는 한 번 만들면 제출이 성공할 때까지 계속 같은 값을 쓴다.
+   응답이 늦어 실패로 보였지만 실제로는 저장된 경우, 다시 제출해도 서버가
+   같은 제출ID를 중복으로 인식해 두 번 기록되지 않는다. */
+let pendingSubmissionId = null;
+
+/* 휴대전화 화면이 꺼지거나 다른 앱으로 전환되면, 진행 중이던 요청이 응답도 오류도 없이
+   멈춘 채 남을 수 있다. 그러면 제출 버튼이 '제출 중...'으로 잠긴 채 눌리지 않는다.
+   화면으로 돌아왔을 때 오래 멈춰 있던 요청을 정리해 버튼을 되살린다. */
+let activeSubmit = null;
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible') return;
+
+  if(activeSubmit && Date.now() - activeSubmit.startedAt > 15000){
+    activeSubmit.controller.abort();   // 중단시키면 아래 finally에서 버튼이 복구된다
+    return;
+  }
+  // 요청 기록이 없는데 버튼만 잠겨 있는 경우에도 되살린다
+  const btn = document.getElementById('submitBtn');
+  if(!activeSubmit && btn && btn.disabled){
+    btn.disabled = false;
+    btn.textContent = '제출하기';
+  }
+});
+
+function genSubmissionId(){
+  return 'S' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+}
+
+document.getElementById('submitForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const errBox = document.getElementById('submitError');
+  errBox.textContent = '';
+
+  const name = document.getElementById('f_name').value.trim();
+  const uid = document.getElementById('f_uid').value.trim();
+  const date = document.getElementById('f_date').value;
+  const reason = document.getElementById('f_reason').value.trim();
+
+  if(!name || !uid || !date || !reason){
+    errBox.textContent = '필수 항목(*)을 모두 입력해주세요.';
+    return;
+  }
+  if(!hasSignature()){
+    submitAttempted = true;
+    errBox.textContent = '서명은 필수 항목입니다. 서명란에 손가락 또는 마우스로 서명해주세요.';
+    const wrap = document.querySelector('.sig-wrap');
+    if(wrap){
+      wrap.classList.add('missing');
+      wrap.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+    return;
+  }
+  if(GAS_URL.indexOf('REPLACE_WITH') === 0){
+    errBox.textContent = '아직 서버 주소(GAS_URL)가 설정되지 않았습니다. 담당자에게 문의해주세요.';
+    return;
+  }
+
+  const isAbsent = selectedType === '결석';
+  const payload = {
+    action: 'createSubmission',
+    제출ID: (pendingSubmissionId = pendingSubmissionId || genSubmissionId()),
+    성명: name,
+    아이디: uid,
+    교육훈련과정: document.getElementById('f_course').value.trim(),
+    구분: selectedType,
+    세부구분: isAbsent ? selectedSubType : '',
+    해당일자: date,
+    시작시각: isAbsent ? ABSENT.start : `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}`,
+    종료시각: isAbsent ? ABSENT.end : `${String(endWheelEl._state.hour).padStart(2,'0')}:${String(endWheelEl._state.min).padStart(2,'0')}`,
+    '결강시간(시간)': isAbsent ? ABSENT.hours : Number(document.getElementById('f_durH').value||0),
+    '결강시간(분)': isAbsent ? ABSENT.minutes : Number(document.getElementById('f_durM').value||0),
+    사유: reason,
+    비고: document.getElementById('f_note').value.trim(),
+    서명: exportSignature()
+  };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '제출 중...';
+
+  const controller = new AbortController();
+  // 화면이 꺼졌다 돌아왔을 때 멈춘 요청을 정리할 수 있도록 기억해둔다
+  activeSubmit = { controller: controller, startedAt: Date.now() };
+  // 앱스 스크립트는 한동안 사용이 없으면 첫 응답이 느리다. 짧게 잡으면
+  // 실제로는 저장됐는데 실패로 보이는 상황이 생기므로 넉넉히 기다린다.
+  const timeout = setTimeout(()=>controller.abort(), 20000);
+
+  try{
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // CORS preflight 회피
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const data = await parseJsonResponse(res);
+    if(!data.success){
+      const serverError = new Error(data.error || '알 수 없는 오류로 제출에 실패했습니다.');
+      serverError.code = data.code || '';
+      serverError.retryable = data.retryable === true;
+      throw serverError;
+    }
+    pendingSubmissionId = null;   // 성공했으므로 다음 제출은 새 ID를 쓴다
+    payload.제출일시 = new Date().toLocaleString('ko-KR');
+    saveLocalHistory(payload);
+    renderHistory();
+    showScreen('done');
+  }catch(err){
+    clearTimeout(timeout);
+    if(err.name === 'AbortError'){
+      errBox.textContent = '서버 응답이 늦어 결과를 확인하지 못했습니다.\n'
+        + '이미 접수되었을 수 있으니 "승인 여부 확인"에서 먼저 확인해주세요.\n'
+        + '접수되지 않았다면 다시 제출해도 중복되지 않습니다.';
+    }else{
+      errBox.textContent = '제출 중 오류가 발생했습니다: ' + err.message;
+    }
+  }finally{
+    activeSubmit = null;
+    btn.disabled = false; btn.textContent = '제출하기';
+  }
+});
+
+/* ===== 화면 전환 ===== */
+function showScreen(which){
+  document.getElementById('formScreen').style.display = (which==='form') ? '' : 'none';
+  document.getElementById('doneScreen').hidden = (which!=='done');
+  document.getElementById('lookupScreen').hidden = (which!=='lookup');
+  window.scrollTo(0,0);
+}
+
+/* 제출 화면을 처음 상태로 되돌린다. 입력값뿐 아니라 구분·시간 휠·서명·오류 표시까지 모두 초기화한다. */
+function resetForm(){
+  document.getElementById('submitForm').reset();
+
+  // 구분: 첫 항목(지각)으로
+  [...typeSeg.children].forEach((b, i)=>b.classList.toggle('active', i === 0));
+  selectedType = typeSeg.children[0].dataset.v;
+  resetSubType();
+  toggleTimeFields();
+
+  // 시간 휠: 기본값으로 되돌리고 결강시간 재계산
+  startWheelEl._scrollTo(9, 0);
+  endWheelEl._scrollTo(18, 0);
+  recalcDuration();
+
+  // 서명 및 오류 표시
+  submitAttempted = false;
+  pendingSubmissionId = null;
+  clearSignature();
+  document.getElementById('submitError').textContent = '';
+
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('backBtn').addEventListener('click', ()=>{
+  showScreen('form');
+  resetForm();
+});
+
+document.getElementById('toLookupBtn').addEventListener('click', ()=>{
+  prefillLookup(); showScreen('lookup');
+});
+document.getElementById('toLookupBtn2').addEventListener('click', ()=>{
+  prefillLookup(); showScreen('lookup');
+});
+document.getElementById('backFromLookupBtn').addEventListener('click', ()=>{
+  showScreen('form');
+  resetForm();
+});
+
+function prefillLookup(){
+  // 직전 제출/입력값이 있으면 자동으로 채워서 조회 편의 제공
+  const name = document.getElementById('f_name').value.trim();
+  const uid = document.getElementById('f_uid').value.trim();
+  const last = loadLocalHistory()[0];
+  if(!document.getElementById('q_name').value){
+    document.getElementById('q_name').value = name || (last ? last.성명 : '');
+  }
+  if(!document.getElementById('q_uid').value){
+    document.getElementById('q_uid').value = uid || (last ? (last.아이디||'') : '');
+  }
+}
+
+/* 서버가 JSON 대신 오류 페이지(HTML)를 돌려주는 경우가 있다.
+   그대로 두면 브라우저마다 다른 알 수 없는 메시지가 나오므로, 실제 응답 내용을 보여준다. */
+async function parseJsonResponse(res){
+  const text = await res.text();
+  const trimmed = (text || '').trim();
+
+  if(!trimmed){
+    // 응답 본문이 비어서 도착한 경우. 일시적인 통신 문제인 경우가 많아 다시 시도할 수 있게 표시한다.
+    const err = new Error('서버 응답이 비어 있습니다. [HTTP ' + res.status + ']');
+    err.retryable = true;
+    throw err;
+  }
+  try{
+    return JSON.parse(trimmed);
+  }catch(e){
+    const looksHtml = /^<(!doctype|html)/i.test(trimmed);
+    const snippet = trimmed.replace(/\s+/g, ' ').slice(0, 120);
+    const err = new Error(
+      (looksHtml
+        ? '서버가 데이터 대신 오류 페이지를 반환했습니다. Apps Script 코드 오류이거나 재배포·재승인이 필요한 상태일 수 있습니다.'
+        : '서버 응답을 해석할 수 없습니다.')
+      + '\n[응답 내용] ' + snippet
+      + '\n[HTTP ' + res.status + ']'
+    );
+    err.retryable = true;   // 응답이 중간에 끊긴 경우일 수 있으므로 한 번 더 시도한다
+    throw err;
+  }
+}
+
+/* 앱스 스크립트는 한동안 호출이 없으면 첫 요청 응답이 느리다.
+   시간이 초과되면 한 번 더 시도한다. 두 번째 요청은 대개 바로 응답한다. */
+async function fetchJsonWithRetry(url, options, opts){
+  opts = opts || {};
+  const waits = opts.waits || [15000, 25000];
+  let lastErr = null;
+  for(let attempt = 0; attempt < waits.length; attempt++){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), waits[attempt]);
+    try{
+      const res = await fetch(url, Object.assign({}, options, {signal: controller.signal}));
+      clearTimeout(timer);
+      return await parseJsonResponse(res);
+    }catch(err){
+      clearTimeout(timer);
+      lastErr = err;
+      // 시간 초과이거나 응답이 비었/깨진 경우에만 재시도한다
+      const canRetry = (err.name === 'AbortError') || err.retryable === true;
+      if(!canRetry) throw err;
+      if(attempt < waits.length - 1 && opts.onRetry) opts.onRetry(attempt + 1);
+    }
+  }
+  throw lastErr;
+}
+
+/* ===== 승인 여부 조회 ===== */
+document.getElementById('lookupBtn').addEventListener('click', async ()=>{
+  const errBox = document.getElementById('lookupError');
+  const resultBox = document.getElementById('lookupResult');
+  errBox.textContent = ''; resultBox.innerHTML = '';
+
+  const name = document.getElementById('q_name').value.trim();
+  const uid = document.getElementById('q_uid').value.trim();
+  if(!name || !uid){ errBox.textContent = '성명과 아이디를 모두 입력해주세요.'; return; }
+  if(GAS_URL.indexOf('REPLACE_WITH') === 0){
+    errBox.textContent = '아직 서버 주소(GAS_URL)가 설정되지 않았습니다. 담당자에게 문의해주세요.';
+    return;
+  }
+
+  const btn = document.getElementById('lookupBtn');
+  btn.disabled = true; btn.textContent = '조회 중...';
+
+  try{
+    const url = `${GAS_URL}?action=status&name=${encodeURIComponent(name)}&uid=${encodeURIComponent(uid)}`;
+    const data = await fetchJsonWithRetry(url, {}, {
+      onRetry: ()=>{ btn.textContent = '다시 시도 중...'; }
+    });
+    if(!data.success) throw new Error(data.error || '조회에 실패했습니다.');
+
+    const list = data.data || [];
+    if(list.length === 0){
+      resultBox.innerHTML = '<div class="status-item"><div class="detail">해당 성명·아이디로 접수된 제출 내역이 없습니다. 입력값을 다시 확인해주세요.</div></div>';
+      return;
+    }
+    resultBox.innerHTML = list.slice().reverse().map(renderStatusItem).join('');
+  }catch(err){
+    errBox.textContent = (err.name === 'AbortError')
+      ? '서버 응답이 지연되어 요청을 중단했습니다. 잠시 후 다시 시도해주세요.'
+      : '조회 중 오류가 발생했습니다: ' + err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = '조회하기';
+  }
+});
+
+function isIso(s){ return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(s)); }
+function fmtTime(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())) return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  return s;
+}
+function fmtDate(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : s;
+}
+
+function fmtDateTime(v){
+  if(v==null || v==='') return '';
+  const s = String(v);
+  if(isIso(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      const p = n=>String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+  }
+  return s;
+}
+
+function fmtDur(h, m){
+  if(h === '' || h == null) return '';   // 값 없음과 0시간은 구분한다
+  const hh = Number(h), mm = Number(m);
+  if(!Number.isFinite(hh)) return '';
+  const minutes = Number.isFinite(mm) ? mm : 0;
+  return `${hh}시간 ${minutes}분`;
+}
+
+function renderStatusItem(it){
+  const status = it.상태 || '대기';
+  const dur = fmtDur(it['결강시간(시간)'], it['결강시간(분)']);
+  const st = fmtTime(it.시작시각), en = fmtTime(it.종료시각);
+  const timeText = st ? `${st} ~ ${en}` : '';
+  let note = '';
+  if(status === '대기') note = '담당자 승인 대기 중입니다.';
+  else if(status === '승인') note = '담당자 승인이 완료되어 근태에 반영되었습니다.';
+  else if(status === '반려') note = '반려되었습니다. 자세한 사항은 담당자에게 문의해주세요.';
+  return `
+    <div class="status-item">
+      <div class="top">
+        <b>${escHtml(it.구분||'')}${it.세부구분 ? ' ('+escHtml(it.세부구분)+')' : ''} · ${escHtml(fmtDate(it.해당일자))}</b>
+        <span class="st ${escHtml(status)}">${escHtml(status)}</span>
+      </div>
+      <div class="detail">
+        ${timeText ? escHtml(timeText)+'<br>' : ''}
+        ${dur ? '결강시간 '+escHtml(dur)+'<br>' : ''}
+        사유: ${escHtml(it.사유||'-')}<br>
+        ${it.제출일시 ? '제출 '+escHtml(fmtDateTime(it.제출일시)) : ''}
+        ${it.처리일시 ? ' · 처리 '+escHtml(fmtDateTime(it.처리일시)) : ''}
+        <br><span style="color:var(--text);">${escHtml(note)}</span>
+      </div>
+    </div>`;
+}
+
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
