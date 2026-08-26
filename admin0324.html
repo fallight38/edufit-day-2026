@@ -210,7 +210,7 @@
 
 <script>
 /* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw-INcYHGgQv2-3jZPRLfijwreTAVweSzifj4tNtPfT3r3bS1iXTnjKBWK2-d7FqIib/exec";
+const GAS_URL = "REPLACE_WITH_YOUR_GAS_WEB_APP_URL";
 
 const OPERATOR_KEY = 'edufit_operator';
 
@@ -261,7 +261,7 @@ async function loadEntries(){
   try{
     if(GAS_URL.indexOf('REPLACE_WITH')===0) throw new Error('서버 주소(GAS_URL)가 설정되지 않았습니다.');
     const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 8000);
+    const timeout = setTimeout(()=>controller.abort(), 15000);
     const url = `${GAS_URL}?action=list&status=${encodeURIComponent('승인')}&date=${encodeURIComponent(date)}&nosig=1`;
     const res = await fetch(url, {signal: controller.signal});
     clearTimeout(timeout);
@@ -439,7 +439,8 @@ document.getElementById('addEntryBtn').addEventListener('click', async ()=>{
 
   btn.disabled = true; btn.textContent = '추가 중...';
   const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 8000);
+  // 앱스 스크립트 첫 호출은 느릴 수 있어 넉넉히 기다린다
+  const timeout = setTimeout(()=>controller.abort(), 20000);
   try{
     const res = await fetch(GAS_URL, {
       method:'POST',
@@ -460,7 +461,9 @@ document.getElementById('addEntryBtn').addEventListener('click', async ()=>{
     loadEntries();
   }catch(err){
     clearTimeout(timeout);
-    alert('추가 중 오류가 발생했습니다: ' + (err.name==='AbortError' ? '서버 응답이 지연되어 요청을 중단했습니다.' : err.message));
+    alert(err.name==='AbortError'
+      ? '서버 응답이 늦어 결과를 확인하지 못했습니다.\n실제로는 추가되었을 수 있으니 "새로고침"으로 목록을 확인한 뒤 다시 시도해주세요.'
+      : '추가 중 오류가 발생했습니다: ' + err.message);
   }finally{
     btn.disabled = false; btn.textContent = '근태 목록에 추가';
   }
@@ -472,7 +475,7 @@ async function fetchPending(){
     throw new Error('서버 주소(GAS_URL)가 아직 설정되지 않았습니다.');
   }
   const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 8000);
+  const timeout = setTimeout(()=>controller.abort(), 15000);
   try{
     const res = await fetch(`${GAS_URL}?action=list&status=${encodeURIComponent('대기')}`, {signal:controller.signal});
     clearTimeout(timeout);
@@ -481,7 +484,7 @@ async function fetchPending(){
     return data.data || [];
   }catch(err){
     clearTimeout(timeout);
-    if(err.name==='AbortError') throw new Error('서버 응답이 8초 이상 지연되어 요청을 중단했습니다.');
+    if(err.name==='AbortError') throw new Error('서버 응답이 지연되어 요청을 중단했습니다. 잠시 후 다시 시도해주세요.');
     throw err;
   }
 }
@@ -569,7 +572,7 @@ async function handleDecision(submissionId, status){
   if(clicked) clicked.innerHTML = '<span class="spinner"></span>처리 중';
 
   const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 8000);
+  const timeout = setTimeout(()=>controller.abort(), 20000);
   try{
     const res = await fetch(GAS_URL, {
       method:'POST',
@@ -603,7 +606,9 @@ async function handleDecision(submissionId, status){
     // 실패했으면 다시 시도할 수 있도록 버튼을 되돌린다
     btns.forEach(b=>b.disabled = false);
     if(clicked) clicked.textContent = originalLabel;
-    if(errEl) errEl.textContent = (err.name==='AbortError' ? '서버 응답 지연으로 요청이 중단되었습니다.' : err.message);
+    if(errEl) errEl.textContent = (err.name==='AbortError'
+      ? '서버 응답이 늦어 결과를 확인하지 못했습니다. "새로고침" 후 처리 여부를 확인해주세요.'
+      : err.message);
   }
 }
 
@@ -676,7 +681,7 @@ async function tryUnlock(){
   btn.innerHTML = '<span class="spinner"></span>확인 중';
 
   const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 8000);
+  const timeout = setTimeout(()=>controller.abort(), 20000);
   try{
     const res = await fetch(GAS_URL, {
       method:'POST',
