@@ -530,12 +530,14 @@ document.getElementById('addEntryBtn').addEventListener('click', async ()=>{
 });
 
 /* ===== 승인 대기함 ===== */
-async function fetchPending(){
+async function fetchPending(withSignature){
   if(GAS_URL.indexOf('REPLACE_WITH')===0){
     throw new Error('서버 주소(GAS_URL)가 아직 설정되지 않았습니다.');
   }
+  // 서명은 승인 대기함 미리보기에만 필요하다. 건수만 셀 때는 받지 않아 응답을 가볍게 한다.
+  const sigParam = withSignature ? '' : '&nosig=1';
   const data = await fetchJsonWithRetry(
-    `${GAS_URL}?action=list&status=${encodeURIComponent('대기')}`, {},
+    `${GAS_URL}?action=list&status=${encodeURIComponent('대기')}${sigParam}`, {},
     { onRetry: ()=>{
         const body = document.getElementById('pendingBody');
         if(body) body.innerHTML = '<div class="loadingtext"><span class="spinner"></span>응답이 늦어 다시 시도하는 중...</div>';
@@ -547,7 +549,7 @@ async function fetchPending(){
 
 async function refreshBadge(){
   try{
-    const list = await fetchPending();
+    const list = await fetchPending(false);
     const badge = document.getElementById('pendingBadge');
     if(list.length>0){ badge.style.display='flex'; badge.textContent = list.length; }
     else{ badge.style.display='none'; }
@@ -565,7 +567,7 @@ async function openPendingModal(){
   body.innerHTML = '<div class="loadingtext"><span class="spinner"></span>불러오는 중...</div>';
   openBtn.disabled = true;
   try{
-    const list = await fetchPending();
+    const list = await fetchPending(true);
     if(list.length===0){
       body.innerHTML = '<div class="empty">대기 중인 제출이 없습니다.</div>';
       return;
