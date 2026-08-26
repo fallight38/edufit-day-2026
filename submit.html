@@ -177,6 +177,15 @@
           <button type="button" data-v="외출">외출</button>
           <button type="button" data-v="결석">결석</button>
         </div>
+        <div id="subTypeWrap" style="display:none;margin-top:14px;">
+          <label>결석 세부구분</label>
+          <div class="segment" id="f_subtype">
+            <button type="button" data-v="" class="active">일반</button>
+            <button type="button" data-v="공가">공가</button>
+            <button type="button" data-v="특별휴가">특별휴가</button>
+          </div>
+          <div class="hint">증빙 서류를 담당자에게 제출해주세요.</div>
+        </div>
       </div>
 
       <div class="card">
@@ -321,12 +330,31 @@ typeSeg.addEventListener('click', (e)=>{
 /* 결석은 하루 전체 결강으로 보아 아래 고정값으로 기록한다 (교육시수 기준). */
 const ABSENT = { start:'09:00', end:'16:50', hours:7, minutes:0 };
 
+/* 결석 세부구분 (공가 / 특별휴가) — 결석을 고른 경우에만 표시 */
+let selectedSubType = '';
+const subTypeSeg = document.getElementById('f_subtype');
+subTypeSeg.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  [...subTypeSeg.children].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSubType = btn.dataset.v;
+});
+
+function resetSubType(){
+  [...subTypeSeg.children].forEach((b,i)=>b.classList.toggle('active', i===0));
+  selectedSubType = '';
+}
+
 function toggleTimeFields(){
   const show = selectedType !== '결석';
   document.getElementById('timeFieldWrap').style.display = show ? '' : 'none';
   document.getElementById('durFieldWrap').style.display = show ? '' : 'none';
   const box = document.getElementById('absentInfo');
   if(box) box.style.display = show ? 'none' : '';
+  const sub = document.getElementById('subTypeWrap');
+  if(sub) sub.style.display = show ? 'none' : '';
+  if(show) resetSubType();   // 결석이 아니면 세부구분은 비워둔다
 }
 toggleTimeFields();
 
@@ -589,7 +617,7 @@ function renderHistory(){
   if(list.length===0){ wrap.innerHTML = '<div class="hist-item">아직 제출 내역이 없습니다.</div>'; return; }
   wrap.innerHTML = list.map(it=>`
     <div class="hist-item">
-      <b>${escHtml(it.구분||'')}</b> · ${escHtml(fmtDate(it.해당일자))}
+      <b>${escHtml(it.구분||'')}${it.세부구분 ? ' ('+escHtml(it.세부구분)+')' : ''}</b> · ${escHtml(fmtDate(it.해당일자))}
       <div class="meta">${escHtml(fmtTime(it.시작시각))} ${it.시작시각?'~':''} ${escHtml(fmtTime(it.종료시각))} ${it.제출일시?('· 제출 '+escHtml(fmtDateTime(it.제출일시))):''}</div>
     </div>
   `).join('');
@@ -636,6 +664,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
     아이디: uid,
     교육훈련과정: document.getElementById('f_course').value.trim(),
     구분: selectedType,
+    세부구분: isAbsent ? selectedSubType : '',
     해당일자: date,
     시작시각: isAbsent ? ABSENT.start : `${String(startWheelEl._state.hour).padStart(2,'0')}:${String(startWheelEl._state.min).padStart(2,'0')}`,
     종료시각: isAbsent ? ABSENT.end : `${String(endWheelEl._state.hour).padStart(2,'0')}:${String(endWheelEl._state.min).padStart(2,'0')}`,
@@ -695,6 +724,7 @@ function resetForm(){
   // 구분: 첫 항목(지각)으로
   [...typeSeg.children].forEach((b, i)=>b.classList.toggle('active', i === 0));
   selectedType = typeSeg.children[0].dataset.v;
+  resetSubType();
   toggleTimeFields();
 
   // 시간 휠: 기본값으로 되돌리고 결강시간 재계산
@@ -835,7 +865,7 @@ function renderStatusItem(it){
   return `
     <div class="status-item">
       <div class="top">
-        <b>${escHtml(it.구분||'')} · ${escHtml(fmtDate(it.해당일자))}</b>
+        <b>${escHtml(it.구분||'')}${it.세부구분 ? ' ('+escHtml(it.세부구분)+')' : ''} · ${escHtml(fmtDate(it.해당일자))}</b>
         <span class="st ${escHtml(status)}">${escHtml(status)}</span>
       </div>
       <div class="detail">
