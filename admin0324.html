@@ -132,7 +132,7 @@
 <div id="adminScreen" style="display:none;">
 <div class="topbar">
   <h1>2026년 신규공무원 공직적응과정</h1>
-  <p>근태 관리 · 담당자 전용</p>
+  <p>근태 관리</p>
   <div class="row-top">
     <input type="text" id="operatorName" placeholder="담당자 이름 (한 번만 입력하면 계속 적용됩니다)">
     <button class="badge-btn" id="openPendingBtn">
@@ -243,6 +243,36 @@ function getListDate(){
   return document.getElementById('listDate').value || todayStr();
 }
 
+/* 앱스 스크립트는 한동안 호출이 없으면 첫 요청 응답이 느리다.
+   시간이 초과되면 한 번 더 시도한다. 두 번째 요청은 대개 바로 응답한다.
+   조회·비밀번호 확인처럼 여러 번 보내도 결과가 달라지지 않는 요청에만 쓴다. */
+async function fetchJsonWithRetry(url, options, opts){
+  opts = opts || {};
+  const waits = opts.waits || [15000, 25000];
+  let lastErr = null;
+  for(let attempt = 0; attempt < waits.length; attempt++){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), waits[attempt]);
+    try{
+      const res = await fetch(url, Object.assign({}, options, {signal: controller.signal}));
+      clearTimeout(timer);
+      return await res.json();
+    }catch(err){
+      clearTimeout(timer);
+      lastErr = err;
+      if(err.name !== 'AbortError') throw err;      // 시간 초과가 아니면 바로 실패 처리
+      if(attempt < waits.length - 1 && opts.onRetry) opts.onRetry(attempt + 1);
+    }
+  }
+  throw lastErr;
+}
+
+function timeoutMessage(err){
+  return err && err.name === 'AbortError'
+    ? '서버 응답이 지연되어 요청을 중단했습니다. 잠시 후 다시 시도해주세요.'
+    : (err ? err.message : '알 수 없는 오류');
+}
+
 let listRequestId = 0;   // 늦게 도착한 예전 응답이 최신 결과를 덮어쓰지 않도록 하는 식별자
 
 function setListToolsDisabled(disabled){
@@ -260,12 +290,10 @@ async function loadEntries(){
   setListToolsDisabled(true);
   try{
     if(GAS_URL.indexOf('REPLACE_WITH')===0) throw new Error('서버 주소(GAS_URL)가 설정되지 않았습니다.');
-    const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 15000);
     const url = `${GAS_URL}?action=list&status=${encodeURIComponent('승인')}&date=${encodeURIComponent(date)}&nosig=1`;
-    const res = await fetch(url, {signal: controller.signal});
-    clearTimeout(timeout);
-    const data = await res.json();
+    const data = await fetchJsonWithRetry(url, {}, {
+      onRetry: ()=>{ if(reqId === listRequestId) statusEl.innerHTML = '<span class="spinner"></span>응답이 늦어 다시 시도하는 중...'; }
+    });
     if(reqId !== listRequestId) return;   // 더 최신 요청이 있으면 이 결과는 버린다
     if(!data.success) throw new Error(data.error || '목록을 불러오지 못했습니다.');
     currentEntries = data.data || [];
@@ -275,7 +303,7 @@ async function loadEntries(){
     if(reqId !== listRequestId) return;
     currentEntries = [];
     renderEntries();
-    statusEl.innerHTML = `<span class="errtext">불러오기 실패: ${esc(err.name==='AbortError' ? '서버 응답이 지연되어 요청을 중단했습니다.' : err.message)}</span>`;
+    statusEl.innerHTML = `<span class="errtext">불러오기 실패: ${esc(timeoutMessage(err))}</span>`;
   }finally{
     if(reqId === listRequestId) setListToolsDisabled(false);
   }
@@ -474,19 +502,15 @@ async function fetchPending(){
   if(GAS_URL.indexOf('REPLACE_WITH')===0){
     throw new Error('서버 주소(GAS_URL)가 아직 설정되지 않았습니다.');
   }
-  const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 15000);
-  try{
-    const res = await fetch(`${GAS_URL}?action=list&status=${encodeURIComponent('대기')}`, {signal:controller.signal});
-    clearTimeout(timeout);
-    const data = await res.json();
-    if(!data.success) throw new Error(data.error || '목록을 불러오지 못했습니다.');
-    return data.data || [];
-  }catch(err){
-    clearTimeout(timeout);
-    if(err.name==='AbortError') throw new Error('서버 응답이 지연되어 요청을 중단했습니다. 잠시 후 다시 시도해주세요.');
-    throw err;
-  }
+  const data = await fetchJsonWithRetry(
+    `${GAS_URL}?action=list&status=${encodeURIComponent('대기')}`, {},
+    { onRetry: ()=>{
+        const body = document.getElementById('pendingBody');
+        if(body) body.innerHTML = '<div class="loadingtext"><span class="spinner"></span>응답이 늦어 다시 시도하는 중...</div>';
+      } }
+  ).catch(err=>{ throw new Error(timeoutMessage(err)); });
+  if(!data.success) throw new Error(data.error || '목록을 불러오지 못했습니다.');
+  return data.data || [];
 }
 
 async function refreshBadge(){
@@ -680,17 +704,12 @@ async function tryUnlock(){
   const label = btn.textContent;
   btn.innerHTML = '<span class="spinner"></span>확인 중';
 
-  const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 20000);
   try{
-    const res = await fetch(GAS_URL, {
+    const data = await fetchJsonWithRetry(GAS_URL, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'checkPassword', 비밀번호: pw}),
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-    const data = await res.json();
+      body: JSON.stringify({action:'checkPassword', 비밀번호: pw})
+    }, { onRetry: ()=>{ err.textContent = '응답이 늦어 다시 시도하는 중입니다...'; } });
     if(!data.success) throw new Error(data.error || '확인에 실패했습니다.');
 
     if(data.ok){
@@ -703,7 +722,6 @@ async function tryUnlock(){
       input.focus();
     }
   }catch(e){
-    clearTimeout(timeout);
     err.textContent = (e.name === 'AbortError')
       ? '서버 응답이 지연되어 요청을 중단했습니다. 네트워크 상태를 확인 후 다시 시도해주세요.'
       : '확인 중 오류가 발생했습니다: ' + e.message;

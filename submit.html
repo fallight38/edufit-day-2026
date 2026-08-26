@@ -780,6 +780,29 @@ function prefillLookup(){
   }
 }
 
+/* 앱스 스크립트는 한동안 호출이 없으면 첫 요청 응답이 느리다.
+   시간이 초과되면 한 번 더 시도한다. 두 번째 요청은 대개 바로 응답한다. */
+async function fetchJsonWithRetry(url, options, opts){
+  opts = opts || {};
+  const waits = opts.waits || [15000, 25000];
+  let lastErr = null;
+  for(let attempt = 0; attempt < waits.length; attempt++){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), waits[attempt]);
+    try{
+      const res = await fetch(url, Object.assign({}, options, {signal: controller.signal}));
+      clearTimeout(timer);
+      return await res.json();
+    }catch(err){
+      clearTimeout(timer);
+      lastErr = err;
+      if(err.name !== 'AbortError') throw err;
+      if(attempt < waits.length - 1 && opts.onRetry) opts.onRetry(attempt + 1);
+    }
+  }
+  throw lastErr;
+}
+
 /* ===== 승인 여부 조회 ===== */
 document.getElementById('lookupBtn').addEventListener('click', async ()=>{
   const errBox = document.getElementById('lookupError');
@@ -797,13 +820,11 @@ document.getElementById('lookupBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('lookupBtn');
   btn.disabled = true; btn.textContent = '조회 중...';
 
-  const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 15000);
   try{
     const url = `${GAS_URL}?action=status&name=${encodeURIComponent(name)}&uid=${encodeURIComponent(uid)}`;
-    const res = await fetch(url, {signal: controller.signal});
-    clearTimeout(timeout);
-    const data = await res.json();
+    const data = await fetchJsonWithRetry(url, {}, {
+      onRetry: ()=>{ btn.textContent = '다시 시도 중...'; }
+    });
     if(!data.success) throw new Error(data.error || '조회에 실패했습니다.');
 
     const list = data.data || [];
@@ -813,9 +834,8 @@ document.getElementById('lookupBtn').addEventListener('click', async ()=>{
     }
     resultBox.innerHTML = list.slice().reverse().map(renderStatusItem).join('');
   }catch(err){
-    clearTimeout(timeout);
     errBox.textContent = (err.name === 'AbortError')
-      ? '서버 응답이 8초 이상 지연되어 요청을 중단했습니다. 네트워크 상태를 확인 후 다시 시도해주세요.'
+      ? '서버 응답이 지연되어 요청을 중단했습니다. 잠시 후 다시 시도해주세요.'
       : '조회 중 오류가 발생했습니다: ' + err.message;
   }finally{
     btn.disabled = false; btn.textContent = '조회하기';
