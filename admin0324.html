@@ -82,7 +82,7 @@
   .empty{color:var(--sub);font-size:13px;padding:20px 0;text-align:center;}
   .sig-box{margin:8px 0;}
   .btn-sig{font-size:12px;padding:6px 12px;}
-  .subtag{display:block;margin-top:4px;font-size:11px;color:var(--blue);font-weight:600;}
+  .subtag{display:block;margin-top:4px;font-size:11px;color:var(--blue);font-weight:600;text-align:center;}
   .subtag-inline{display:inline-block;padding:2px 7px;border-radius:7px;background:#E5F0FF;color:var(--blue);font-size:11.5px;font-weight:600;}
   .tablewrap{overflow-x:auto;}
 
@@ -362,7 +362,7 @@ function renderEntries(){
     <tr>
       <td>${esc(e.성명)}</td>
       <td>${esc(e.아이디||'')}</td>
-      <td><span class="tag ${esc(e.구분)}">${esc(e.구분)}</span>${e.세부구분 ? '<div class="subtag">'+esc(e.세부구분)+'</div>' : ''}</td>
+      <td style="text-align:center;"><span class="tag ${esc(e.구분)}">${esc(e.구분)}</span>${e.세부구분 ? '<div class="subtag">'+esc(e.세부구분)+'</div>' : ''}</td>
       <td>${esc(fmtDate(e.해당일자))}</td>
       <td>${esc(fmtRange(e.시작시각, e.종료시각))}</td>
       <td>${esc(fmtDur(e['결강시간(시간)'], e['결강시간(분)']))}</td>
