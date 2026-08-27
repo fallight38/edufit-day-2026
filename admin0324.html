@@ -211,7 +211,7 @@
 </div>
 
 <script>
-/* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
+/* ===== 설정 : 백엔드 API 주소를 여기에 넣으세요 ===== */
 const GAS_URL = "https://attend-2026-api.vercel.app/api";
 
 const OPERATOR_KEY = 'edufit_operator';
@@ -264,7 +264,7 @@ async function parseJsonResponse(res){
     const snippet = trimmed.replace(/\s+/g, ' ').slice(0, 120);
     const err = new Error(
       (looksHtml
-        ? '서버가 데이터 대신 오류 페이지를 반환했습니다. Apps Script 코드 오류이거나 재배포·재승인이 필요한 상태일 수 있습니다.'
+        ? '서버가 데이터 대신 오류 페이지를 반환했습니다. 서버 코드 오류이거나 배포 상태에 문제가 있을 수 있습니다.'
         : '서버 응답을 해석할 수 없습니다.')
       + '\n[응답 내용] ' + snippet
       + '\n[HTTP ' + res.status + ']'
@@ -274,7 +274,7 @@ async function parseJsonResponse(res){
   }
 }
 
-/* 앱스 스크립트는 한동안 호출이 없으면 첫 요청 응답이 느리다.
+/* 서버 함수는 한동안 호출이 없으면 첫 요청 응답이 느릴 수 있다.
    시간이 초과되면 한 번 더 시도한다. 두 번째 요청은 대개 바로 응답한다.
    조회·비밀번호 확인처럼 여러 번 보내도 결과가 달라지지 않는 요청에만 쓴다. */
 async function fetchJsonWithRetry(url, options, opts){
@@ -510,7 +510,7 @@ document.getElementById('addEntryBtn').addEventListener('click', async ()=>{
 
   btn.disabled = true; btn.textContent = '추가 중...';
   const controller = new AbortController();
-  // 앱스 스크립트 첫 호출은 느릴 수 있어 넉넉히 기다린다
+  // 서버 함수 첫 호출은 느릴 수 있어 넉넉히 기다린다
   const timeout = setTimeout(()=>controller.abort(), 20000);
   try{
     const res = await fetch(GAS_URL, {
@@ -766,7 +766,7 @@ document.getElementById('todayBtn').addEventListener('click', ()=>{
 });
 
 /* ===== 접속 비밀번호 =====
-   비밀번호는 이 파일에 들어 있지 않다. 입력값을 앱스 스크립트로 보내 서버에서 대조하므로,
+   비밀번호는 이 파일에 들어 있지 않다. 입력값을 서버로 보내 대조하므로,
    페이지 소스를 봐도 비밀번호를 알 수 없다.
    한 번 확인되면 같은 탭에서는 다시 묻지 않는다. */
 const UNLOCK_KEY = 'edufit_admin_unlocked';
