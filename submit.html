@@ -17,6 +17,9 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--bg);font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);overflow-x:hidden;}
+  /* 서명하는 동안에만 화면 끝 튕김이 문서 스크롤로 번지는 것을 막는다.
+     평상시에는 걸지 않아 '당겨서 새로고침' 등 기본 동작이 그대로 남는다. */
+  body.drawing{overscroll-behavior:none;}
   .card{overflow:hidden;}
   body{padding-bottom:96px;}
   .topbar{position:sticky;top:0;z-index:10;background:rgba(242,242,247,.92);backdrop-filter:blur(10px);padding:16px 20px 10px;text-align:center;}
@@ -93,7 +96,8 @@
     -ms-user-select:none !important;user-select:none !important;
     -webkit-touch-callout:none !important;
   }
-  canvas#sigPad{touch-action:none;}
+  /* 서명 영역 안에서는 손가락 움직임을 스크롤로 해석하지 않는다 */
+  .sig-wrap, .sig-wrap *{touch-action:none;}
   canvas#sigPad{width:100%;height:160px;display:block;touch-action:none;border-radius:14px;}
   .sig-placeholder{position:absolute;top:50%;left:0;right:0;text-align:center;transform:translateY(-50%);color:#C7C7CC;font-size:14px;pointer-events:none;}
   .sig-actions{display:flex;justify-content:flex-end;margin-top:8px;}
@@ -510,11 +514,18 @@ function resizeCanvas(){
 
 // 휴대전화에서 입력칸을 누르면 키보드가 올라오며 resize가 발생한다.
 // 이때 서명이 지워지지 않도록 위에서 복원 처리하고, 잦은 호출은 묶어서 처리한다.
+// 또한 앱 내부 브라우저(카카오톡 등)는 주소 표시줄이 나타났다 사라질 때도 resize를 발생시킨다.
+// 서명하는 도중에 캔버스를 다시 만들면 그리던 선이 끊기므로, 서명 중에는 미뤘다가 나중에 처리한다.
 let resizeTimer = null;
-window.addEventListener('resize', ()=>{
+function scheduleResize(){
   if(resizeTimer) clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(resizeCanvas, 150);
-});
+  resizeTimer = setTimeout(()=>{
+    resizeTimer = null;
+    if(drawing){ scheduleResize(); return; }   // 서명 중이면 끝날 때까지 미룬다
+    resizeCanvas();
+  }, 150);
+}
+window.addEventListener('resize', scheduleResize);
 resizeCanvas();
 
 // iOS Safari에서 손가락으로 서명할 때 텍스트 선택이나 길게 누르기 메뉴가 뜨는 것을 막는다.
@@ -553,12 +564,53 @@ function exportSignature(){
   return lastUrl;
 }
 
+/* 카카오톡 등 앱 내부 브라우저는 화면이 조금만 스크롤돼도 주소 표시줄을 감췄다 보였다 하면서
+   화면이 위아래로 튄다. 서명하는 동안에는 본문을 제자리에 고정해 스크롤 자체가 일어나지 않게 한다.
+   보이는 위치가 바뀌지 않도록 현재 스크롤 값만큼 위로 밀어 두고, 끝나면 원래 자리로 되돌린다. */
+let scrollLocked = false;
+let unlockTimer = null;
+
+function lockPageScroll(){
+  if(unlockTimer){ clearTimeout(unlockTimer); unlockTimer = null; }
+  if(scrollLocked) return;
+  // overflow만 잠근다. 스크롤 위치와 배치는 그대로여서 상단 제목 막대가 튀지 않는다.
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+  scrollLocked = true;
+}
+
+function unlockPageScroll(){
+  if(!scrollLocked) return;
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+  scrollLocked = false;
+}
+
+/* overflow 잠금만으로는 부족한 브라우저(특히 iOS 계열 앱 내부 창)를 위한 두 번째 장치.
+   서명하는 동안에만 손가락 이동의 기본 동작(스크롤)을 막는다.
+   touchstart가 아니라 touchmove만 막으므로, 서명을 그리는 포인터 이벤트에는 영향이 없다. */
+function blockTouchScroll(e){
+  if(drawing && e.cancelable) e.preventDefault();
+}
+canvas.addEventListener('touchmove', blockTouchScroll, {passive:false});
+document.addEventListener('touchmove', blockTouchScroll, {passive:false});
+
+/* 획과 획 사이에 잠금을 풀었다 걸면 그때마다 화면이 흔들린다.
+   손을 뗀 뒤 잠시 기다렸다가, 이어지는 획이 없을 때만 잠금을 푼다. */
+function scheduleUnlock(){
+  if(unlockTimer) clearTimeout(unlockTimer);
+  unlockTimer = setTimeout(()=>{ unlockTimer = null; unlockPageScroll(); }, 800);
+}
+
 function pos(e){
   const rect = canvas.getBoundingClientRect();
   return {x: e.clientX-rect.left, y: e.clientY-rect.top};
 }
 canvas.addEventListener('pointerdown', (e)=>{
   drawing = true;
+  // 손가락·펜일 때만 화면을 잠근다. 마우스에서 잠그면 PC에서 스크롤 막대가 사라지며
+  // 화면이 옆으로 밀리는 문제가 생기고, 마우스는 애초에 화면을 흔들지도 않는다.
+  if(e.pointerType !== 'mouse') lockPageScroll();
   document.body.classList.add('drawing');   // 서명 중 페이지 전체 선택 잠금
   sigPlaceholder.style.display = 'none';
   const p = pos(e);
@@ -576,6 +628,7 @@ canvas.addEventListener('pointermove', (e)=>{
 });
 function endStroke(){
   drawing = false;
+  scheduleUnlock();                          // 이어지는 획이 없으면 잠금 해제
   document.body.classList.remove('drawing');
   // 드래그 도중 만들어진 선택 영역이 남아 있으면 해제한다
   const sel = window.getSelection && window.getSelection();
@@ -637,6 +690,10 @@ let pendingSubmissionId = null;
 let activeSubmit = null;
 
 document.addEventListener('visibilitychange', ()=>{
+  // 서명 도중 다른 앱으로 전환되면 손을 뗀 신호가 오지 않아 잠금이 남을 수 있다
+  if(drawing){ drawing = false; document.body.classList.remove('drawing'); }
+  unlockPageScroll();
+
   if(document.visibilityState !== 'visible') return;
 
   if(activeSubmit && Date.now() - activeSubmit.startedAt > 15000){
@@ -746,6 +803,8 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
 
 /* ===== 화면 전환 ===== */
 function showScreen(which){
+  drawing = false;
+  unlockPageScroll();          // 잠금이 남은 채 화면이 바뀌지 않도록 한다
   document.getElementById('formScreen').style.display = (which==='form') ? '' : 'none';
   document.getElementById('doneScreen').hidden = (which!=='done');
   document.getElementById('lookupScreen').hidden = (which!=='lookup');
