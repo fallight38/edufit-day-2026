@@ -28,7 +28,7 @@
   .field{margin-bottom:14px;}
   .field:last-child{margin-bottom:0;}
   label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
-  label .req, h2 .req{color:var(--red);margin-left:2px;}
+  label .req{color:var(--red);margin-left:2px;}
   input[type=text], input[type=date], textarea{
     width:100%;max-width:100%;min-width:0;border:1px solid var(--border);border-radius:12px;padding:12px 14px;
     font-size:16px;font-family:inherit;background:#FAFAFC;color:var(--text);outline:none;
@@ -313,8 +313,8 @@
 </div>
 
 <script>
-/* ===== 설정 : 백엔드 API 주소를 여기에 넣으세요 ===== */
-const GAS_URL = "https://attend-2026-api.vercel.app/api";
+/* ===== 설정 : Apps Script 배포 후 이 URL을 교체하세요 ===== */
+const GAS_URL = "/api";
 
 /* ===== 구분 세그먼트 ===== */
 let selectedType = "지각";
@@ -524,7 +524,7 @@ canvas.addEventListener('selectstart', (e)=>e.preventDefault());
 /* 구글 시트는 셀 하나에 50,000자까지만 저장한다.
    고해상도 기기(아이폰 등)에서는 서명 원본이 이 한도를 넘어 잘리므로,
    전송 전에 크기를 줄여 충분히 여유 있는 범위로 맞춘다.
-   서버에는 이미지 크기 조절 기능이 없어 이 작업은 반드시 브라우저에서 해야 한다. */
+   앱스 스크립트에는 이미지 크기 조절 기능이 없어 이 작업은 반드시 브라우저에서 해야 한다. */
 const SIG_MAX_CHARS = 30000;
 
 function exportSignature(){
@@ -706,7 +706,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e)=>{
   const controller = new AbortController();
   // 화면이 꺼졌다 돌아왔을 때 멈춘 요청을 정리할 수 있도록 기억해둔다
   activeSubmit = { controller: controller, startedAt: Date.now() };
-  // 서버 함수는 한동안 사용이 없으면 첫 응답이 느릴 수 있다. 짧게 잡으면
+  // 앱스 스크립트는 한동안 사용이 없으면 첫 응답이 느리다. 짧게 잡으면
   // 실제로는 저장됐는데 실패로 보이는 상황이 생기므로 넉넉히 기다린다.
   const timeout = setTimeout(()=>controller.abort(), 20000);
 
@@ -822,7 +822,7 @@ async function parseJsonResponse(res){
     const snippet = trimmed.replace(/\s+/g, ' ').slice(0, 120);
     const err = new Error(
       (looksHtml
-        ? '서버가 데이터 대신 오류 페이지를 반환했습니다. 서버 코드 오류이거나 배포 상태에 문제가 있을 수 있습니다.'
+        ? '서버가 데이터 대신 오류 페이지를 반환했습니다. Apps Script 코드 오류이거나 재배포·재승인이 필요한 상태일 수 있습니다.'
         : '서버 응답을 해석할 수 없습니다.')
       + '\n[응답 내용] ' + snippet
       + '\n[HTTP ' + res.status + ']'
@@ -832,7 +832,7 @@ async function parseJsonResponse(res){
   }
 }
 
-/* 서버 함수는 한동안 호출이 없으면 첫 요청 응답이 느릴 수 있다.
+/* 앱스 스크립트는 한동안 호출이 없으면 첫 요청 응답이 느리다.
    시간이 초과되면 한 번 더 시도한다. 두 번째 요청은 대개 바로 응답한다. */
 async function fetchJsonWithRetry(url, options, opts){
   opts = opts || {};
